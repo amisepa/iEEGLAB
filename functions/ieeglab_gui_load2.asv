@@ -1,0 +1,315 @@
+function opt = ieeglab_gui_load2(opt)
+% iEEGLAB GUI (channels, exclusive load modes, minimal event selection)
+%
+% Required:
+%   opt.elec_labels  - cellstr of channel labels
+%
+% Optional (preselects only):
+%   opt.chan_idx     - previously selected channel indices (preselect)
+%   opt.events       - table; if present and has numeric 'onset', we can precompute clip window
+%   opt.event_field  - (optional) preselect events column name
+%   opt.event_values - (optional) preselect values (cell of char) for that column
+%
+% Outputs set by GUI:
+%   opt.chan_idx, opt.chan_list
+%   opt.use_period            - logical
+%   opt.load_window_min       - [] (whole file) or [t0 t1] minutes if use_period==true
+%   opt.load_window_sec       - [] or [t0 t1] seconds from events±10 s WHEN clip_events==true
+%   opt.ev_only               - logical
+%   opt.event_field           - char (chosen events column)  <-- ALWAYS set if events exist
+%   opt.event_values          - {'All'} or list of values (cell of char) (used if ev_only)
+%   opt.epoch_window_sec      - [pre post] seconds (default [-1 1.5]); used if ev_only
+
+assert(isfield(opt,'elec_labels') && ~isempty(opt.elec_labels), ...
+    'ieeglab_gui_load2: opt.elec_labels must be a non-empty cell array.');
+labels = opt.elec_labels(:);
+nch    = numel(labels);
+
+% ---------- Channels preselect ----------
+if ~isfield(opt,'chan_idx') || isempty(opt.chan_idx)
+    preCh = 1;
+else
+    sel = opt.chan_idx(:)'; sel = sel(sel>=1 & sel<=nch);
+    preCh = iff(isempty(sel) || numel(sel)==nch, 1, sel+1);
+end
+labels_disp = [{'All channels'}; labels];
+
+% ---------- Events presence & clip window ----------
+haveEvents = isfield(opt,'events') && istable(opt.events) && ~isempty(opt.events);
+clipWindow = []; % seconds
+if haveEvents && any(strcmpi('onset', opt.events.Properties.VariableNames))
+    ons = opt.events.onset;
+    if isnumeric(ons) && ~isempty(ons) && all(isfinite(ons))
+        t0 = max(0, min(ons) - 10);  % seconds
+        t1 = max(ons) + 10;          % seconds
+        if t1 < t0, [t0,t1] = deal(t1,t0); end
+        clipWindow = [t0 t1];
+    end
+end
+
+% ---------- Event field list + per-field values (for ev_only values picker) ----------
+fields_disp = {};
+all_value_lists = {};
+preFieldIdx = 1;
+
+if haveEvents
+    vars = opt.events.Properties.VariableNames;
+    cand = setdiff(vars, {'onset'}, 'stable');  % all event fields except onset
+    for k = 1:numel(cand)
+        col  = cand{k};
+        vals = getUniques(opt.events, col);                   % string vector
+        fields_disp{end+1}     = col;                         %#ok<AGROW>
+        all_value_lists{end+1} = [{'All'}; cellstr(string(vals(:)))]; %#ok<AGROW>
+    end
+    if isempty(fields_disp)
+        fields_disp = {'<no event fields>'};
+        all_value_lists = {{'All'}};
+    end
+    if isfield(opt,'event_field') && ~isempty(opt.event_field)
+        fidx = find(strcmp(fields_disp, opt.event_field), 1);
+        if ~isempty(fidx), preFieldIdx = fidx; end
+    else
+        def = find(strcmp(fields_disp,'electrical_stimulation_site'),1);
+        if ~isempty(def), preFieldIdx = def; end
+    end
+else
+    fields_disp     = {'<no events table>'};
+    all_value_lists = {{'All'}};
+    preFieldIdx     = 1;
+end
+
+% Values list for current field (used when ev_only is on)
+list_values = all_value_lists{preFieldIdx};
+
+% Preselect values (from opt.event_values) for the listbox (if later enabled)
+preValIdx = 1; % "All"
+if isfield(opt,'event_values') && ~isempty(opt.event_values)
+    want = cellstr(opt.event_values(:));
+    idxs = [];
+    for w = 1:numel(want)
+        i = find(strcmp(list_values, want{w}), 1);
+        if ~isempty(i), idxs(end+1) = i; end %#ok<AGROW>
+    end
+    if ~isempty(idxs), preValIdx = idxs; end
+end
+
+% ---------- Exclusive-mode callbacks ----------
+cb_use = [ ...
+ 'val=get(gcbo,''value'');' ...
+ 'if val,' ...
+    'set(findobj(gcbf,''tag'',''clip_events''),''value'',0);' ...
+    'set(findobj(gcbf,''tag'',''ev_only''),''value'',0);' ...
+    'set(findobj(gcbf,''userdata'',''perblock''),''enable'',''on'');' ...
+    'set(findobj(gcbf,''userdata'',''evblock''),''enable'',''off'');' ...
+    'set(findobj(gcbf,''tag'',''event_val_list''),''enable'',''off'');' ...
+    'set(findobj(gcbf,''tag'',''epoch_win''),''enable'',''off'');' ...
+ 'else,' ...
+    'set(findobj(gcbf,''userdata'',''perblock''),''enable'',''off'');' ...
+ 'end' ];
+
+cb_clip = [ ...
+ 'val=get(gcbo,''value'');' ...
+ 'if val,' ...
+    'set(findobj(gcbf,''tag'',''use_period''),''value'',0);' ...
+    'set(findobj(gcbf,''tag'',''ev_only''),''value'',0);' ...
+    'set(findobj(gcbf,''userdata'',''perblock''),''enable'',''off'');' ...
+    'set(findobj(gcbf,''userdata'',''evblock''),''enable'',''off'');' ...
+    'set(findobj(gcbf,''tag'',''event_val_list''),''enable'',''off'');' ...
+    'set(findobj(gcbf,''tag'',''epoch_win''),''enable'',''off'');' ...
+ 'end' ];
+
+cb_ev   = [ ...
+ 'val=get(gcbo,''value'');' ...
+ 'if val,' ...
+    'set(findobj(gcbf,''tag'',''use_period''),''value'',0);' ...
+    'set(findobj(gcbf,''tag'',''clip_events''),''value'',0);' ...
+    'set(findobj(gcbf,''userdata'',''perblock''),''enable'',''off'');' ...
+    'set(findobj(gcbf,''userdata'',''evblock''),''enable'',''on'');' ...
+    'set(findobj(gcbf,''tag'',''event_val_list''),''enable'',''on'');' ...
+    'set(findobj(gcbf,''tag'',''epoch_win''),''enable'',''on'');' ...
+ 'else,' ...
+    'set(findobj(gcbf,''userdata'',''evblock''),''enable'',''off'');' ...
+    'set(findobj(gcbf,''tag'',''event_val_list''),''enable'',''off'');' ...
+    'set(findobj(gcbf,''tag'',''epoch_win''),''enable'',''off'');' ...
+ 'end' ];
+
+% When event field changes, update the values listbox items (even if disabled)
+cb_field = [ ...
+ 'idx = get(gcbo,''value'');' ...
+ 'vallists = get(gcbo,''userdata'');' ...   % cell of value lists
+ 'lst = vallists{idx};' ...
+ 'hlist = findobj(gcbf,''tag'',''event_val_list'');' ...
+ 'set(hlist,''string'',lst,''value'',1);' ...
+];
+
+% ---------- Geometry ----------
+uigeom = { ...
+    [1], [0.33], ...                 % Channels title + list
+    [1], [0.20], ...                 % Period checkbox + edit
+    [1], ...                         % Clip-to-events checkbox
+    [1], ...                         % Events header
+    [1], [0.20], ...                 % Event field label + popup (ALWAYS visible if events)
+    [1], ...                         % "Load specific events only" checkbox
+    [1], [0.22], ...                 % Values label + listbox (under ev_only)
+    [1], [0.20] ...                  % Epoch window label + edit (seconds) (under ev_only)
+};
+geomvert = [1 6, 1 1, 1, 1, 1 1, 1, 1 2, 1 1];
+
+% ---------- UI list ----------
+uilist = {
+    % Channels
+    {'style' 'text'    'string' 'Select channel(s):' 'fontweight' 'bold'}
+    {'style' 'listbox' 'tag' 'sel_list' 'string' labels_disp ...
+     'value' preCh 'min' 0 'max' 2 'ListboxTop' 1}
+
+    % Period (checkbox + edit) — option A
+    {'style' 'checkbox' 'tag' 'use_period' ...
+     'string' 'Load rough custom period [start end] (in min)' ...
+     'value' 0 'callback' cb_use}
+    {'style' 'edit'    'tag' 'period_min' 'string' '' ...
+     'horizontalalignment' 'left' 'userdata' 'perblock' 'enable' 'off'}
+
+    % Clip to events — option B
+    {'style' 'checkbox' 'tag' 'clip_events' ...
+     'string' 'Load everything from 1st event −10 s to last event +10 s' ...
+     'value' 0 'callback' cb_clip}
+
+    % Events header
+    {'style' 'text' 'string' 'Events' 'fontweight' 'bold'}
+
+    % Event field picker (ALWAYS visible if haveEvents)
+    {'style' 'text' 'string' 'Event field:'}
+    {'style' 'popupmenu' 'tag' 'event_field' 'string' fields_disp ...
+     'value' preFieldIdx 'callback' cb_field ...
+     'userdata' all_value_lists 'enable' iff(haveEvents,'on','off')}
+
+    % Load specific events only — option C (values + epoch window)
+    {'style' 'checkbox' 'tag' 'ev_only' ...
+     'string' 'Load specific events only (and epoch around them)' ...
+     'value' 0 'callback' cb_ev 'enable' iff(haveEvents,'on','off')}
+
+    % Values for that field
+    {'style' 'text' 'string' 'Values to load:' 'userdata' 'evblock' 'enable' 'off'}
+    {'style' 'listbox' 'tag' 'event_val_list' 'string' list_values ...
+     'value' preValIdx 'min' 0 'max' 2 'ListboxTop' 1 'userdata' 'evblock' 'enable' 'off'}
+
+    % Epoch window (seconds)
+    {'style' 'text' 'string' 'Epoch window around events (s) [pre post]:' 'userdata' 'evblock' 'enable' 'off'}
+    {'style' 'edit' 'tag' 'epoch_win' 'string' '-1 1.5' ...
+     'horizontalalignment' 'left' 'userdata' 'evblock' 'enable' 'off'}
+};
+
+[~,~,~,outstruct] = inputgui('geometry', uigeom, ...
+                             'geomvert', geomvert, ...
+                             'uilist', uilist, ...
+                             'title','iEEGLAB: load options', ...
+                             'minwidth', 600);
+if isempty(outstruct), return; end
+
+% ---------- Channels mapping ----------
+idxCh_disp = outstruct.sel_list(:)';
+if any(idxCh_disp==1) || isempty(idxCh_disp)
+    opt.chan_idx  = 1:nch;
+    opt.chan_list = labels;
+else
+    idx           = idxCh_disp - 1;
+    opt.chan_idx  = idx;
+    opt.chan_list = labels(idx);
+end
+
+% ---------- Period (minutes) ----------
+opt.use_period = isfield(outstruct,'use_period') && outstruct.use_period==1;
+opt.load_window_min = [];
+if opt.use_period
+    raw = strtrim(outstruct.period_min);
+    [t0m, t1m, ok] = parsePeriodAllowOpenEnd(raw);
+    if ok && ~isempty(raw)
+        t0m = max(0, t0m);
+        if ~isnan(t1m)
+            t1m = max(t0m, t1m);
+            opt.load_window_min = [t0m t1m];
+        else
+            opt.load_window_min = []; % whole file by your spec
+        end
+    end
+end
+
+% ---------- Clip to events (seconds) ----------
+opt.load_window_sec = [];
+if isfield(outstruct,'clip_events') && outstruct.clip_events==1
+    if ~isempty(clipWindow)
+        opt.load_window_sec = clipWindow;
+    end
+end
+
+% ---------- Event selection (field always, values only if ev_only) ----------
+opt.event_field = '';
+opt.event_values = {'All'};
+opt.epoch_window_sec = [-1 1.5];
+opt.ev_only = 0;
+
+if haveEvents
+    ef_idx = outstruct.event_field;  % numeric index into fields_disp
+    ef_idx = max(1, min(ef_idx, numel(fields_disp)));
+    opt.event_field = fields_disp{ef_idx};
+end
+
+opt.ev_only = isfield(outstruct,'ev_only') && outstruct.ev_only==1;
+if opt.ev_only && haveEvents
+    vals_for_field = all_value_lists{ef_idx};
+    opt.event_values = mapOut(outstruct.event_val_list, vals_for_field);
+    ew_raw  = strtrim(outstruct.epoch_win);
+    ew_nums = regexp(ew_raw, '([-+]?\d*\.?\d+)', 'match');
+    if numel(ew_nums) >= 2
+        pre  = str2double(ew_nums{1});
+        post = str2double(ew_nums{2});
+        if ~isnan(pre) && ~isnan(post)
+            opt.epoch_window_sec = [pre post];
+        end
+    end
+end
+
+end % === main ===
+
+% -------------------- helpers --------------------
+function out = mapOut(idx_list, list_disp)
+    % Return cell array of char (row cell). 'All' => {'All'}
+    if isempty(idx_list) || any(idx_list==1)
+        out = {'All'};
+    else
+        out = list_disp(idx_list);   % list_disp is cellstr
+        out = out(:)';               % row cell
+    end
+end
+
+function vals = getUniques(ev, colname)
+    if ismember(colname, ev.Properties.VariableNames)
+        x = ev.(colname);
+        if iscell(x), x = string(x); end
+        vals = unique(x(~ismissing(x)));
+    else
+        vals = string.empty(0,1);
+    end
+end
+
+function y = iff(cond, a, b)
+    if cond, y = a; else, y = b; end
+end
+
+function [t0, t1, ok] = parsePeriodAllowOpenEnd(str)
+    % Parses "", "t0", or "t0, t1" (minutes).
+    % ok=false for empty/invalid; for single value, t1=NaN (caller treats as whole-file).
+    t0 = NaN; t1 = NaN; ok = false;
+    if isempty(str), return; end
+    nums = regexp(str, '([-+]?\d*\.?\d+)', 'match');
+    if isempty(nums), return; end
+    if numel(nums) == 1
+        t0 = str2double(nums{1}); if isnan(t0), return; end
+        ok = true; t1 = NaN; return;
+    end
+    t0 = str2double(nums{1});
+    t1 = str2double(nums{2});
+    if isnan(t0) || isnan(t1), ok=false; return; end
+    if t1 < t0, [t0, t1] = deal(t1, t0); end
+    ok = true;
+end
