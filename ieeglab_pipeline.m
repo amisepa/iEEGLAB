@@ -25,49 +25,48 @@
 % % c) accept the license: sudo xcodebuild -license press (to display license): enter type: agree
 % % d) verify MATLAB detects the compiler (back in matlab): mex -setup C --> You should now see an option like: Xcode with Clang
 
-%% iEEGLAB plugin v1.5 
-%
-% Cedric Cannard, September 2025
+%% step 1: launch EEGLAB
 
 clear; close all; clc
 eeglab; close
 
-plugin_path = fileparts(which('eegplugin_ieeglab'));
-% addpath(genpath(plugin_path)); 
-cd(fullfile(plugin_path, 'tutorial'))
+% plugin_path = fileparts(which('eegplugin_ieeglab'));
+plugin_path = '/Users/cedriccannard/Documents/MATLAB/iEEGLAB';
 
-% EEG = ieeglab_load();
+% cd(fullfile(plugin_path, 'tutorial'))
+cd(plugin_path)
+addpath('functions')
+
+
+%% Arno's Dandi .nwb dataset
+
+% https://dandiarchive.org/dandiset/000576/
+
+disp("Loading .nwb data...")
+EEG = pop_nwbimport();
+% data = nwbRead(opt.dataset_path, 'ignorecache');
+EEG.srate = round(EEG.srate);
+
 
 %% sEEG .mefd data
 
-% Install the MEF3 EEGLAB plugin (clone github repo or via EEGLAB's
-% extension manager)
-
-% Navigate to it and compile (1st time only)
-% For MAC users, make sure you need to do this first
-% a) install xcode Open Mac App Store → Search for Xcode → Install.
-% b) in terminal, switch to full Xcode developer directory: 
-%       sudo xcode-select --switch /Applications/Xcode.app/Contents/Developer
-% c) accept the license: 
-%       sudo xcodebuild -license press (to display license): enter 
-%       type: agree
-% d) verify MATLAB detects the compiler (back in matlab): 
-%       mex -setup C 
-%       --> You should now see an option like: Xcode with Clang
-
-% cd(fileparts(which('pop_MEF3')))
-% mex read_mef_session_metadata.c matmef_mapping.c mex_utils.c matmef_dataconverter.c
-% mex read_mef_ts_data.c matmef_read.c mex_utils.c matmef_dataconverter.c
-% mex init_mef_struct.c matmef_mapping.c mex_utils.c matmef_dataconverter.c
-% mex write_mef_segment_metadata.c matmef_write.c mex_utils.c matmef_utils.c matmef_mapping.c matmef_dataconverter.c
-% mex write_mef_ts_segment_data.c matmef_write.c mex_utils.c matmef_utils.c matmef_mapping.c matmef_dataconverter.c
-% cd(fullfile(plugin_path, 'tutorial'))
-
-filepath = fullfile(plugin_path, 'tutorial', 'dataset1');
+filepath = '/Users/cedriccannard/Downloads/dataset1';
 filename = 'sub-01_ses-ieeg01_task-ccep_run-01_ieeg.mefd';
 EEG = pop_MEF3(fullfile(filepath, filename));
+EEG.filepath = filepath;
 
 
+%% sEEG .vhdr data
+
+filepath = '/Users/cedriccannard/Downloads/ds006519/sub-02/ses-01/ieeg';
+filename = 'sub-02_ses-01_task-dcs_ieeg.vhdr';
+EEG = pop_loadbv(filepath,filename);
+EEG.filepath = filepath;
+
+
+%% Load electrode coordinates and events of interest from .tsv files
+
+EEG = ieeglab_load(EEG);
 
 %% Visualize 
 

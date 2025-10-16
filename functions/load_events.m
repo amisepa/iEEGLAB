@@ -21,7 +21,7 @@ else
             if isfield(opt,'event_field') && ~isempty(opt.event_field) && ismember(opt.event_field, opt.events.Properties.VariableNames)
                 val = opt.events.(opt.event_field);
             elseif ismember('electrical_stimulation_site', opt.events.Properties.VariableNames)
-                val = opt.events.electrical_stimulation_site;
+                val = opt.events.(event_field);
             else
                 error("Event field not specified and default field 'electrical_stimulation_site' not found. Please select the field in the GUI and try again.");
             end

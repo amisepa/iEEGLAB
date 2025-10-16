@@ -91,11 +91,11 @@ if ~isempty(opt.events_tsv)
         EEG.event(iEv).latency = ev_lats(iEv) * EEG.srate;
     end
 
-    % % clear var
-    % opt = rmfield(opt, 'events');
-    % opt = rmfield(opt, 'event_field');
-    % opt = rmfield(opt, 'event_values');
-    % opt = rmfield(opt, 'events_tsv');
+    % clear var
+    opt = rmfield(opt, 'events');
+    opt = rmfield(opt, 'event_field');
+    opt = rmfield(opt, 'event_values');
+    opt = rmfield(opt, 'events_tsv');
 
 end
 
@@ -115,14 +115,14 @@ if isfield(opt, 'chan_idx') && ~isempty(opt.chan_idx) || ...
        length(opt.chan_list) ~= EEG.nbchan
 
     opt.chan_list = cellstr(opt.chan_list);  % ensure cellstr
-    % opt.chan_list = opt.chan_list(:)';       % row cell array
+    opt.chan_list = opt.chan_list(:)';       % row cell array
 
 
-    EEG = pop_select(EEG, 'channel', opt.chan_list, 'sorttrial', 'off');
-    % EEG = pop_select( EEG, 'channel',{'ROC1','ROC2','ROC3','ROC4','ROC5','ROC6','ROC7','ROC8','ROC9','ROC10','ROC11','ROC12','ROC13','ROC14','ROC15'});
+    EEG = pop_select(EEG, 'channel', opt.chan_list);
+    EEG = pop_select( EEG, 'channel',{'ROC1','ROC2','ROC3','ROC4','ROC5','ROC6','ROC7','ROC8','ROC9','ROC10','ROC11','ROC12','ROC13','ROC14','ROC15'});
 
-    % opt = rmfield(opt, 'chan_idx');
-    % opt = rmfield(opt, 'chan_list');
+    opt = rmfield(opt, 'chan_idx');
+    opt = rmfield(opt, 'chan_list');
 end
 
 % EEG.ieeglab.opt = opt;

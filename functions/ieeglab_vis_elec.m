@@ -10,6 +10,9 @@ try icadefs; set(gcf, 'color', BACKCOLOR); catch; end  % eeglab color
 
 sub_files = { dir(fullfile(EEG.filepath)).name }';
 surf_files = sub_files(contains(sub_files, 'pial'));
+if isempty(surf_files)
+    error("Sorry, no pial surface file in this subject's folder. Aborting visualization. If this file does not exist, you need to generate it with Freesurfer using the subject's MRI.")
+end
 
 % Left hemisphere
 % idx = strcmpi({EEG.chanlocs.hemisphere}, 'L');

@@ -11,7 +11,3 @@ plugin_path = find(fileparts(which()));
 eeglab; close
 
 
-%% Demo2 (from current eeglab tutorial)
-
-% https://dandiarchive.org/dandiset/000576/
-% https://nemar.org/dataexplorer/detail?dataset_id=ds003708&processed=0
