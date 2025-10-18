@@ -16,15 +16,16 @@ end
 
 % Left hemisphere
 % idx = strcmpi({EEG.chanlocs.hemisphere}, 'L');
-idx = [EEG.chanlocs.X] < 0;
-if sum(idx) > 1
-    surfFile = surf_files{contains(surf_files, 'L')};
+idx_elecs_hemi = [EEG.chanlocs.X] < 0;
+idx_surf_hemi = contains(surf_files, 'L');
+if sum(idx_elecs_hemi) > 1 && any(idx_surf_hemi)
+    surfFile = surf_files{idx_surf_hemi};
     % g = gifti(fullfile(EEG.filepath,'pial.L.surf.gii' ));
     % g = gifti(fullfile(EEG.filepath,'pial_desc-qsiprep.L.surf.gii' ));    
     g = gifti(fullfile(EEG.filepath, surfFile));
     tH = ieeg_RenderGifti(g);  % render
     tH.FaceAlpha = 0.2;
-    s = scatter3([EEG.chanlocs(idx).X], [EEG.chanlocs(idx).Y], [EEG.chanlocs(idx).Z], 'o', 'Filled');
+    s = scatter3([EEG.chanlocs(idx_elecs_hemi).X], [EEG.chanlocs(idx_elecs_hemi).Y], [EEG.chanlocs(idx_elecs_hemi).Z], 'o', 'Filled');
     s.SizeData = 10;
     s.MarkerFaceColor = [.9 .5 .5];
     s.MarkerEdgeColor = [0 0 0];
@@ -35,14 +36,14 @@ end
 
 % Right hemisphere
 % idx = strcmpi({EEG.chanlocs.hemisphere}, 'R');
-idx = [EEG.chanlocs.X] > 0;
-if sum(idx) > 1
-    surfFile = surf_files{contains(surf_files, 'R')};
+idx_elecs_hemi = [EEG.chanlocs.X] > 0;
+if sum(idx_elecs_hemi) > 1 && any(idx_surf_hemi)
+    surfFile = surf_files{idx_surf_hemi};
     g = gifti(fullfile(EEG.filepath, surfFile));
 
     tH = ieeg_RenderGifti(g);  % render
     tH.FaceAlpha = 0.2;
-    s = scatter3([EEG.chanlocs(idx).X], [EEG.chanlocs(idx).Y], [EEG.chanlocs(idx).Z], 'o', 'Filled');
+    s = scatter3([EEG.chanlocs(idx_elecs_hemi).X], [EEG.chanlocs(idx_elecs_hemi).Y], [EEG.chanlocs(idx_elecs_hemi).Z], 'o', 'Filled');
     s.SizeData = 10;
     s.MarkerFaceColor = [.9 .5 .5];
     s.MarkerEdgeColor = [0 0 0];

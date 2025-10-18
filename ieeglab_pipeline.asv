@@ -48,24 +48,13 @@ EEG = pop_nwbimport();
 EEG.srate = round(EEG.srate);
 
 
-%% sEEG .mefd data1 (reduced dataset)
+%% sEEG .mefd data
 
 filepath = '/Users/cedriccannard/Downloads/dataset1';
 filename = 'sub-01_ses-ieeg01_task-ccep_run-01_ieeg.mefd';
 EEG = pop_MEF3(fullfile(filepath, filename));
 EEG.filepath = filepath;
 
-%% sEEG .mefd data2
-
-filepath = '/Users/cedriccannard/Downloads/dataset3';
-filename = 'sub-02_ses-ieeg01_task-ccep_run-01_ieeg.mefd';
-tic
-parpool;
-EEG = pop_MEF3(fullfile(filepath, filename));
-metadata = ieeglab_load_mefd(fullfile(filepath, filename));
-
-EEG.filepath = filepath;
-toc
 
 %% sEEG .vhdr data
 
@@ -75,6 +64,9 @@ EEG = pop_loadbv(filepath,filename);
 EEG.filepath = filepath;
 
 %% eCoG .vhdr data
+
+clear; close all; clc
+eeglab; close
 
 filepath = '/Users/cedriccannard/Downloads/ecog/sub-02/ses-01/ieeg/';
 filename = 'sub-02_ses-01_task-visual_run-01_ieeg.vhdr';
@@ -86,6 +78,8 @@ EEG.filepath = filepath;
 EEG = ieeglab_load(EEG);
 
 
+
+
 %% Visualize 
 
 % Raw data
@@ -93,7 +87,6 @@ pop_eegplot(EEG,1,1,1);
 
 
 % Electrodes in 3D glass brain 
-addpath(genpath('/Users/cedriccannard/Documents/MATLAB/vistasoft'))
 ieeglab_vis_elec(EEG);
 
 % No Freesurfer file
@@ -108,9 +101,6 @@ plot_glass_brain_iEEG([EEG.chanlocs.X; EEG.chanlocs.Y; EEG.chanlocs.Z]', ...
     'SuperExp', 1.6, ...
     'ShowAxes', false);
 title('iEEG electrodes on a lightweight glass-brain backdrop');
-
-% figure; scatter3([EEG.chanlocs.X], [EEG.chanlocs.Y], [EEG.chanlocs.Z] ); grid off; box off
-% figure; bubblechart3([EEG.chanlocs.X], [EEG.chanlocs.Y], [EEG.chanlocs.Z], .1);  grid off; box off
 
 %% Preprocess channels
 
