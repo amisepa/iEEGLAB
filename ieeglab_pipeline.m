@@ -59,13 +59,35 @@ EEG.filepath = filepath;
 
 filepath = '/Users/cedriccannard/Downloads/dataset3';
 filename = 'sub-02_ses-ieeg01_task-ccep_run-01_ieeg.mefd';
-tic
-parpool;
-EEG = pop_MEF3(fullfile(filepath, filename));
-metadata = ieeglab_load_mefd(fullfile(filepath, filename));
+% EEG = pop_MEF3(fullfile(filepath, filename));
 
-EEG.filepath = filepath;
+
+% [metadata, signal] = ieeglab_load_mefd(fileName);
+metadata     = readMef3(fullfile(filepath, filename));
+fs           = double(metadata.time_series_metadata.section_2.sampling_frequency);
+num_samples  = double(metadata.time_series_metadata.section_2.number_of_samples);
+startSample  = 369 * fs;
+endSample    = 1000 * fs;
+tic
+% parpool;
+[metadata, signal] = ieeglab_load_mefd(fullfile(filepath, filename), [], [], ...
+    'samples', [startSample endSample]);
 toc
+
+% Convert to EEGLAB format
+EEG = eeg_emptyset;
+EEG.filepath = filepath;
+EEG.data = signal;
+EEG.nbchan = size(EEG.data,1);
+EEG.pnts = size(EEG.data,2);
+EEG.srate = fs;
+EEG = eeg_checkset(EEG);
+
+% Channel labels from metadata
+for iChan = 1:EEG.nbchan
+    EEG.chanlocs(iChan).labels = metadata.time_series_channels(iChan).name;
+end
+EEG = eeg_checkset(EEG);
 
 %% sEEG .vhdr data
 
@@ -94,23 +116,9 @@ pop_eegplot(EEG,1,1,1);
 
 % Electrodes in 3D glass brain 
 addpath(genpath('/Users/cedriccannard/Documents/MATLAB/vistasoft'))
+addpath('/Users/cedriccannard/Documents/MATLAB/fieldtrip')
 ieeglab_vis_elec(EEG);
 
-% No Freesurfer file
-% Suppose you have:
-%   elec_xyz = [x y z; ...] in mm (e.g., MNI / RAS space)
-%   labels   = {'E1','E2',...};
-plot_glass_brain_iEEG([EEG.chanlocs.X; EEG.chanlocs.Y; EEG.chanlocs.Z]', ...
-    'Labels', {EEG.chanlocs.labels}, ...
-    'MarkerFace', [0.1 0.6 0.2], ...
-    'BrainAlpha', 0.06, ...
-    'Radii', [70 95 75], ...
-    'SuperExp', 1.6, ...
-    'ShowAxes', false);
-title('iEEG electrodes on a lightweight glass-brain backdrop');
-
-% figure; scatter3([EEG.chanlocs.X], [EEG.chanlocs.Y], [EEG.chanlocs.Z] ); grid off; box off
-% figure; bubblechart3([EEG.chanlocs.X], [EEG.chanlocs.Y], [EEG.chanlocs.Z], .1);  grid off; box off
 
 %% Preprocess channels
 

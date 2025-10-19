@@ -8,7 +8,7 @@ if ndims(EEG.data) == 3
     % end
 else
     epoched = false;
-    if ~isfield(EEG, 'trials') || isempty(EEG.trials) || EEG.trials == 0
+    if ~isfield(EEG, 'trials') || 
         EEG.trials = 1;
     end
 end
@@ -118,8 +118,7 @@ if isfield(opt, 'chan_idx') && ~isempty(opt.chan_idx) || ...
     % opt.chan_list = opt.chan_list(:)';       % row cell array
 
 
-    EEG = pop_select(EEG, 'channel', opt.chan_list);
-    % EEG = pop_select(EEG, 'channel', opt.chan_list, 'sorttrial', 'off');
+    EEG = pop_select(EEG, 'channel', opt.chan_list, 'sorttrial', 'off');
     % EEG = pop_select( EEG, 'channel',{'ROC1','ROC2','ROC3','ROC4','ROC5','ROC6','ROC7','ROC8','ROC9','ROC10','ROC11','ROC12','ROC13','ROC14','ROC15'});
 
     % opt = rmfield(opt, 'chan_idx');
