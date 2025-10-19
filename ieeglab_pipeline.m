@@ -42,13 +42,21 @@ addpath('functions')
 
 % https://dandiarchive.org/dandiset/000576/
 
-disp("Loading .nwb data...")
-EEG = pop_nwbimport();
-% data = nwbRead(opt.dataset_path, 'ignorecache');
+% disp("Loading .nwb data...")
+% EEG = pop_nwbimport();
+% % data = nwbRead(opt.dataset_path, 'ignorecache');
+% EEG.srate = round(EEG.srate);
+
+%% Arno's dandi set but in .vhdr format from Nemar
+
+filepath = '/Users/cedriccannard/Downloads/ds006519/sub-02/ses-01/ieeg';
+filename = 'sub-02_ses-01_task-dcs_ieeg.vhdr';
+EEG = pop_loadbv(filepath,filename);
+EEG.filepath = filepath;
 EEG.srate = round(EEG.srate);
+EEG = eeg_checkset(EEG);
 
-
-%% sEEG .mefd data1 (reduced dataset)
+%% sEEG .mefd data1 (Dora's reduced dataset)
 
 filepath = '/Users/cedriccannard/Downloads/dataset1';
 filename = 'sub-01_ses-ieeg01_task-ccep_run-01_ieeg.mefd';
@@ -89,19 +97,17 @@ for iChan = 1:EEG.nbchan
 end
 EEG = eeg_checkset(EEG);
 
-%% sEEG .vhdr data
-
-filepath = '/Users/cedriccannard/Downloads/ds006519/sub-02/ses-01/ieeg';
-filename = 'sub-02_ses-01_task-dcs_ieeg.vhdr';
-EEG = pop_loadbv(filepath,filename);
-EEG.filepath = filepath;
 
 %% eCoG .vhdr data
+% dataset source: https://openneuro.org/datasets/ds005953/versions/1.0.0
 
 filepath = '/Users/cedriccannard/Downloads/ecog/sub-02/ses-01/ieeg/';
 filename = 'sub-02_ses-01_task-visual_run-01_ieeg.vhdr';
 EEG = pop_loadbv(filepath,filename);
 EEG.filepath = filepath;
+EEG.srate = round(EEG.srate);
+EEG = eeg_checkset(EEG);
+
 
 %% Load electrode coordinates and events of interest from .tsv files
 

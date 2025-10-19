@@ -10,7 +10,7 @@ end
 
 opt = EEG.ieeglab.opt;
 
-% --- Gather events safely (table form) ---
+%  Gather events safely (table form + remember original form)
 ev_tbl = table();  % default empty
 ev_from_opt = isfield(opt,'events') && istable(opt.events) && ~isempty(opt.events);
 
@@ -21,111 +21,75 @@ else
         if istable(EEG.event)
             ev_tbl = EEG.event;
         elseif isstruct(EEG.event)
-            try
-                ev_tbl = struct2table(EEG.event, 'AsArray', true);
-            catch
-                ev_tbl = table();
-            end
+            try, ev_tbl = struct2table(EEG.event, 'AsArray', true); catch, ev_tbl = table(); end
         end
     end
 end
-
 events_exist = istable(ev_tbl) && ~isempty(ev_tbl);
+event_was_struct = isfield(EEG,'event') && isstruct(EEG.event) && ~isempty(EEG.event);
 
-% --- Filter events of interest (if any) ---
+%  Filter events of interest (if any) 
 if isfield(opt,'event_filters') && ~isempty(fieldnames(opt.event_filters)) && events_exist
     ev_choices = opt.event_filters;
     vars = fieldnames(ev_choices);
 
-    % normalize helper
-    toLowerStr = @(x) lower(string(x));
-
+    % Normalize all columns we might touch into string view on-the-fly
     keepMask = true(height(ev_tbl),1);
+
     for iField = 1:numel(vars)
         col = vars{iField};
-        labelsToKeep = ev_choices.(col);  % cellstr/string; empty -> "All"
+        labelsToKeep = ev_choices.(col);  % cellstr or string, {} means "All"
         if isempty(labelsToKeep) || ~ismember(col, ev_tbl.Properties.VariableNames)
             continue; % nothing to filter on this column
         end
 
-        % column values -> lower-case string
+        % normalize both side types to string (case-insensitive compare)
         colVals = ev_tbl.(col);
+        if iscell(colVals), colVals = string(colVals); end
         if iscategorical(colVals), colVals = string(colVals); end
-        if iscell(colVals) || isstring(colVals) || isnumeric(colVals) || islogical(colVals)
-            colVals = toLowerStr(colVals);
-        else
-            % last resort
-            colVals = toLowerStr(string(colVals));
-        end
+        if isnumeric(colVals), colVals = string(colVals); end
+        colVals = lower(colVals);
 
-        % labels to keep -> lower-case string vector
         lab = labelsToKeep;
         if iscell(lab), lab = string(lab); end
         lab = lower(string(lab(:)));
 
         thisKeep = ismember(colVals, lab);
-
-        % report removals at this stage (before combine)
+        % Report removal count at this stage (before combining with other filters)
         nToRemoveHere = sum(~thisKeep & keepMask);
         if nToRemoveHere > 0
-            lab_disp = strjoin(cellstr(unique(lab,'stable')), ', ');
+            lab_disp = strjoin(cellstr(unique(lab,'stable')) , ', ');
             fprintf('Filtering by %s: removing %d events NOT in {%s}\n', col, nToRemoveHere, lab_disp);
         end
-
         keepMask = keepMask & thisKeep;
     end
 
-    % Apply final mask to table only
+    % Apply final mask to table and EEG.event (if present)
     nRemoved = sum(~keepMask);
     if nRemoved > 0
         ev_tbl = ev_tbl(keepMask, :);
+        if isfield(EEG,'event') && ~isempty(EEG.event)
+            if istable(EEG.event)
+                EEG.event = EEG.event(keepMask, :);
+            elseif isstruct(EEG.event)
+                EEG.event = EEG.event(keepMask);
+            end
+        end
         fprintf('Total events removed after all filters: %d\n', nRemoved);
-    end
-
-    % --- Safely push filtered events back into EEG.event ---
-    if isfield(EEG,'event') && ~isempty(EEG.event)
-        % lengths may have changed upstream (e.g., eeg_checkset removed OOB events)
-        if istable(EEG.event)
-            nEEG = height(EEG.event);
-        else
-            nEEG = numel(EEG.event);
-        end
-
-        if nEEG ~= height(ev_tbl)
-            warning('Event count changed upstream (%d -> %d). Rebuilding EEG.event from ev_tbl.', nEEG, height(ev_tbl));
-        end
-
-        % Rebuild from ev_tbl (most robust in all cases)
-        try
-            EEG.event = table2struct(ev_tbl);  % row-wise struct array
-        catch
-            EEG.event = ev_tbl;                % fallback: keep as table
-        end
-    else
-        % EEG.event absent/empty: just set from ev_tbl
-        try
-            EEG.event = table2struct(ev_tbl);
-        catch
-            EEG.event = ev_tbl;
-        end
     end
 end
 
-% --- Drop heavy event table from options (to save memory) ---
-if isfield(EEG,'ieeglab') && isfield(EEG.ieeglab,'opt') && isfield(EEG.ieeglab.opt,'events')
+% Drop heavy event table from options if it exists (safe)
+if isfield(EEG.ieeglab,'opt') && isfield(EEG.ieeglab.opt,'events')
     EEG.ieeglab.opt = rmfield(EEG.ieeglab.opt, 'events');
 end
 
-% --- If we sourced events from opt.events and EEG.event was empty, push them back ---
+% If we sourced events from opt.events and EEG.event was empty, push them back
 if ev_from_opt && events_exist && (~isfield(EEG,'event') || isempty(EEG.event))
-    try
-        EEG.event = table2struct(ev_tbl);
-    catch
-        EEG.event = ev_tbl;
-    end
+    EEG.event = table2struct(ev_tbl);
 end
 
-% Remove electrodes with no coordinates (optional)
+% Remove electrodes with no coordinates (optional) 
 if isfield(opt, 'remove_no_coords') && opt.remove_no_coords && isfield(EEG,'chanlocs') && ~isempty(EEG.chanlocs)
     hasXYZ = arrayfun(@(c) isfield(c,'X') && isfield(c,'Y') && isfield(c,'Z') && ...
         ~isempty(c.X) && ~isempty(c.Y) && ~isempty(c.Z) && ...
@@ -144,9 +108,8 @@ if isfield(opt, 'remove_no_coords') && opt.remove_no_coords && isfield(EEG,'chan
 
     % Remove corresponding events whose TYPE includes any removed label (if events exist)
     if ~isempty(removedLabels) && isfield(EEG,'event') && ~isempty(EEG.event)
-        % [evTypes, okTypes] = local_get_event_types(EEG.event);
-        evTypes = {EEG.event.type};
-        % if okTypes
+        [evTypes, okTypes] = local_get_event_types(EEG.event);
+        if okTypes
             remEv = false(size(evTypes));
             lowRemoved = lower(string(removedLabels));
             for k = 1:numel(lowRemoved)
@@ -161,13 +124,13 @@ if isfield(opt, 'remove_no_coords') && opt.remove_no_coords && isfield(EEG,'chan
                 end
                 EEG = eeg_checkset(EEG);
             end
-        % end
+        end
     end
 end
 
 % Remove events pointing to electrodes not present (for CCEP data)
 if isfield(EEG,'event') && ~isempty(EEG.event) && isfield(EEG,'chanlocs') ...
-        && ~isempty(EEG.chanlocs) && ~isnumeric(EEG.event(1).type)
+    && ~isempty(EEG.chanlocs) && ~isnumeric(EEG.event(1).type)
     % [evTypes, okTypes] = local_get_event_types(EEG.event);
     evTypes = {EEG.event.type};
     if contains(evTypes, '-')
@@ -256,15 +219,15 @@ if isfield(opt,'remove_rare_cond') && opt.remove_rare_cond && isfield(opt,'min_t
 end
 
 
-% Epoching (uses ALL current event types if none chosen in GUI)
+% Epoching (uses ALL current event types if none chosen in GUI) 
 if isfield(opt,'apply_epoch') && opt.apply_epoch && ...
-        isfield(opt,'epoch_window') && numel(opt.epoch_window)>=2 && ...
-        isfield(EEG,'event') && ~isempty(EEG.event)
+   isfield(opt,'epoch_window') && numel(opt.epoch_window)>=2 && ...
+   isfield(EEG,'event') && ~isempty(EEG.event)
 
     % window
     t_ms = double(opt.epoch_window(:))';
     if numel(t_ms)<2 || ~all(isfinite(t_ms(1:2))) || t_ms(2)<=t_ms(1)
-        warning('Invalid epoch window; skipping epoching.');
+        warning('Invalid epoch window; skipping epoching.'); 
     else
         % collect unique event types as strings
         if istable(EEG.event), evTypes = EEG.event.type; else, evTypes = {EEG.event.type}'; end
@@ -290,50 +253,35 @@ end
 
 % Apply aCAR (Huang et al., 2024) for epoched data
 if isfield(opt,'apply_acar') && opt.apply_acar && isfield(EEG,'trials') && EEG.trials>1
-
-    % PLOT BEFORE CAR (OPTIONAL)
-    respData = nan(numel(EEG.times), numel(EEG.epoch));
-    for iTrial = 1:numel(EEG.epoch)
-        if ~isnumeric(EEG.event(1).type) && contains(EEG.event(1).type,'-') % CCEP: pick target chan from event
-            respElec   = extractAfter(EEG.event(iTrial).type,'-');
-            respIdx    = strcmpi({EEG.chanlocs.labels}, respElec);
-            respData(:,iTrial) = squeeze(EEG.data(respIdx,:,iTrial));
+    
+    % quick visualization (optional)
+    respData = nan(length(EEG.times), length(EEG.event));    
+    for iTrial = 1:length(EEG.event)
+        if ~isnumeric(EEG.event(1).type) && contains(EEG.event(1).type, '-') % for CCEP data
+            respElec = extractAfter(EEG.event(iTrial).type, '-');
+            respElecIdx = strcmpi({EEG.chanlocs.labels}, respElec);
+            respData(:,iTrial) = squeeze(EEG.data(respElecIdx,:,iTrial));
         else
             respData(:,iTrial) = squeeze(trimmean(EEG.data(:,:,iTrial),20,1));
         end
     end
-    mu1  = trimmean(respData,20,2);
-    n1   = sum(~isnan(respData),2);
-    sem1 = std(respData,0,2,'omitmissing') ./ sqrt(max(n1,1));
-    figure('color','w'); hold on 
-    ax = gca; co = ax.ColorOrder; 
-    col1 = co(1,:); col2 = co(2,:);
-    x = EEG.times(:);
-    fill([x; flipud(x)]', [mu1+sem1; flipud(mu1-sem1)]', col1, 'FaceAlpha',0.2, 'EdgeColor', col1);
-    h1 = plot(x, mu1, 'LineWidth',2, 'Color', col1, 'DisplayName','Before CAR');
+    figure('color','w'); hold on
+    plot(EEG.times, trimmean(respData,20,2), 'LineWidth',2)
 
-    % APPLY CAR 
     EEG = ieeglab_car(EEG);
 
-    % PLOT AFTER CAR (OPTIONAL)
-    respData = nan(numel(EEG.times), numel(EEG.epoch));
-    for iTrial = 1:numel(EEG.epoch)
-        if ~isnumeric(EEG.event(1).type) && contains(EEG.event(1).type,'-')
-            respElec   = extractAfter(EEG.event(iTrial).type,'-');
-            respIdx    = strcmpi({EEG.chanlocs.labels}, respElec);
-            respData(:,iTrial) = squeeze(EEG.data(respIdx,:,iTrial));
+    respData = nan(length(EEG.times), length(EEG.event));    
+    for iTrial = 1:length(EEG.event)
+        if ~isnumeric(EEG.event(1).type) && contains(EEG.event(1).type, '-') % for CCEP data
+            respElec = extractAfter(EEG.event(iTrial).type, '-');
+            respElecIdx = strcmpi({EEG.chanlocs.labels}, respElec);
+            respData(:,iTrial) = squeeze(EEG.data(respElecIdx,:,iTrial));
         else
             respData(:,iTrial) = squeeze(trimmean(EEG.data(:,:,iTrial),20,1));
         end
     end
-    mu2  = trimmean(respData,20,2);
-    n2   = sum(~isnan(respData),2);
-    sem2 = std(respData,0,2,'omitmissing') ./ sqrt(max(n2,1));
-    fill([x; flipud(x)]', [mu2+sem2; flipud(mu2-sem2)]', col2, 'FaceAlpha',0.2, 'EdgeColor', col2);
-    h2 = plot(x, mu2, 'LineWidth',2, 'Color', col2, 'DisplayName','After CAR');
-    legend([h1 h2], 'Location','best'); box on
-    xlabel('Time (ms)'); ylabel('Amplitude (\muV)');
-    title('Mean \pm 1 SEM (Before vs After CAR)');
+    plot(EEG.times, trimmean(respData,20,2), 'LineWidth',2)
+    legend("Before CAR", "After CAR")
 end
 
 

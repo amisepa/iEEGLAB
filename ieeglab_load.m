@@ -2,12 +2,12 @@ function EEG = ieeglab_load(EEG)
 
 % check if dataset is already epoched
 if ndims(EEG.data) == 3
-    epoched = true;
+    % epoched = true;
     % if ~isfield(EEG, 'trials')
     %     EEG.trials = size(EEG.data,3);
     % end
 else
-    epoched = false;
+    % epoched = false;
     if ~isfield(EEG, 'trials') || isempty(EEG.trials) || EEG.trials == 0
         EEG.trials = 1;
     end
@@ -22,9 +22,9 @@ end
 % Pull electrode labels from TSV file
 if ~isempty(opt.elec_tsv)
     elecs = readtable(opt.elec_tsv, 'FileType', 'text', 'Delimiter', '\t');
-    opt.elecs = elecs;
+    % opt.elecs = elecs;
     opt.elec_labels = elecs.name;
-    % opt.elec_labels = strtrim(regexprep(opt.elec_labels, '''', '')); % remove apostrophes inside the labels
+    opt.elec_labels = strtrim(regexprep(opt.elec_labels, '''', '')); % remove apostrophes inside the labels in some datasets
 
     % Check tsv file contains electrode Cartesian (XYZ) coordinates
     idx_x = strcmpi(fieldnames(elecs), 'x');
@@ -39,7 +39,6 @@ if ~isempty(opt.events_tsv)
     events = readtable(opt.events_tsv, 'FileType', 'text', 'Delimiter', '\t');
     fprintf("%g total events were imported from the .tsv event file.\n", size(events,1))
     opt.events = events; 
-    
 else
     disp("You did not select a .tsv event file. Checking if you EEGLAB dataset already contains events...")
     if ~isempty(EEG.event)
@@ -53,13 +52,13 @@ end
 % Electrode XYZ coordinates from TSV elec data
 if ~isempty(opt.elec_tsv)
     EEG = get_elec_coor(EEG, elecs);
-
-    % Clear vars
-    opt = rmfield(opt, 'elec_tsv');
-    opt = rmfield(opt, 'elecs');
-    opt = rmfield(opt, 'elec_labels');
+    opt.elec_labels = {EEG.chanlocs.labels};
 end
 
+% Abort if no channels left
+if EEG.nbchan == 0
+    error("No electrodes left in dataset.")
+end
 
 % Abort if there are no electrode labels anywhere
 if ~isfield(EEG.chanlocs, 'X') || isempty([EEG.chanlocs.X])
@@ -78,25 +77,17 @@ end
 if ~isempty(opt.events_tsv)
     disp("Loading TSV events into EEGLAB dataset...")
     
-    % % Load events from .tsv into EEGLAB
-    % if ~isempty(opt.events_tsv)
-    %     EEG = load_events(EEG,opt);
-    % end
-
     col = opt.event_field;
     ev_types = opt.events.(col);
     ev_lats = opt.events.onset;
     for iEv = 1:length(ev_types)
-        EEG.event(iEv).type = ev_types{iEv};
+        if iscell(ev_types(iEv))
+            EEG.event(iEv).type = ev_types{iEv};
+        else
+            EEG.event(iEv).type = ev_types(iEv);
+        end
         EEG.event(iEv).latency = ev_lats(iEv) * EEG.srate;
     end
-
-    % % clear var
-    % opt = rmfield(opt, 'events');
-    % opt = rmfield(opt, 'event_field');
-    % opt = rmfield(opt, 'event_values');
-    % opt = rmfield(opt, 'events_tsv');
-
 end
 
 
@@ -126,7 +117,16 @@ if isfield(opt, 'chan_idx') && ~isempty(opt.chan_idx) || ...
     % opt = rmfield(opt, 'chan_list');
 end
 
-% EEG.ieeglab.opt = opt;
+% % Clear vars
+% opt = rmfield(opt, 'elec_tsv');
+% opt = rmfield(opt, 'elecs');
+% opt = rmfield(opt, 'elec_labels');
+% opt = rmfield(opt, 'events');
+% opt = rmfield(opt, 'event_field');
+% opt = rmfield(opt, 'event_values');
+% opt = rmfield(opt, 'events_tsv');
+
+EEG.ieeglab.opt = opt;
 
 % Final check
 EEG = eeg_checkset(EEG);

@@ -15,6 +15,8 @@ surf_files = sub_files(contains(sub_files, 'pial'));
 % Subject pial-surface plotting from vistasoft
 if ~isempty(surf_files)        
         
+    try icadefs; set(gcf, 'color', BACKCOLOR); catch; end  % eeglab color
+
     % Left hemisphere
     idx_elecs_hemi = [EEG.chanlocs.X] < 0;
     idx_surf_hemi  = contains(surf_files, 'L');
@@ -24,7 +26,7 @@ if ~isempty(surf_files)
         tH = ieeg_RenderGifti(g);  % your renderer
         tH.FaceAlpha = 0.1;
         s = scatter3([EEG.chanlocs(idx_elecs_hemi).X], [EEG.chanlocs(idx_elecs_hemi).Y], [EEG.chanlocs(idx_elecs_hemi).Z], 'o', 'Filled');
-        s.SizeData = 8; 
+        s.SizeData = 10; 
         s.MarkerFaceColor = [.9 .5 .5]; 
         s.MarkerEdgeColor = [0 0 0];
         ieeg_viewLight(90,0)
@@ -41,7 +43,7 @@ if ~isempty(surf_files)
         tH = ieeg_RenderGifti(g);
         tH.FaceAlpha = 0.1;
         s = scatter3([EEG.chanlocs(idx_elecs_hemi).X], [EEG.chanlocs(idx_elecs_hemi).Y], [EEG.chanlocs(idx_elecs_hemi).Z], 'o', 'Filled');
-        s.SizeData = 8; 
+        s.SizeData = 10; 
         s.MarkerFaceColor = [.9 .5 .5]; 
         s.MarkerEdgeColor = [0 0 0];
         ieeg_viewLight(90,0)  % 180,90 (top/front); 90,0 (right)
@@ -49,9 +51,11 @@ if ~isempty(surf_files)
         disp("No electrodes in right hemisphere to plot")
     end
 
+    axis equal off vis3d tight
+    title("Visualization using subject's pial surface file (Freesurfer-generated)",'Interpreter','none');
+
 
 else
-
     % Fallback if no Freesurfer file is available: dipfit standard_BEM (smooth)
     dipfit_root = fileparts(which('dipfitdefs'));
     assert(~isempty(dipfit_root), 'dipfit not found on path. Enable dipfit in EEGLAB.');
@@ -74,11 +78,12 @@ else
     s = scatter3(E(:,1), E(:,2), E(:,3), 'o', 'filled');
     s.SizeData = 10; s.MarkerFaceColor = [.9 .5 .5]; s.MarkerEdgeColor = [0 0 0];
 
+    try icadefs; set(gcf, 'color', BACKCOLOR); catch; end  % eeglab color
     axis equal off vis3d tight
     camlight headlight; camlight right
     lighting gouraud; material dull
     view([-135 20]);
-    title('iEEG on dipfit standard BEM (fallback)','Interpreter','none');
+    title('Visualization using standard BEM template (fallback when no Freesurfer pial surface files is detected)','Interpreter','none');
 
 end
 
