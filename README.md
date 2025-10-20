@@ -6,13 +6,11 @@ Please cite the following references when using this plugin:
 
 
 
-
 ## Requirements
 
 - MATLAB
 - EEGLAB
 - Mac Os: Xcode
-
 
 
 
