@@ -1,5 +1,12 @@
 # iEEGLAB
-EEGLAB plugin for analyzing intracranial EEG (iEEG) data.
+EEGLAB plugin for analyzing intracranial EEG (iEEG) data. Supports both stereoEEG (sEEG) and eCoG data. 
+The plugin supports continuous iEEG data applications:
+	- Epilepsy research, 
+	- clinical monitoring
+
+Although it is mainly designed for event-related applications:
+	- Stimulus-/Response-locked, 
+	- Cortico-Cortical Evoked Potentials (CCEP; e.g., single pulse stimulation experiments)
 
 A lot of the code and algorithms implemented were adapted from work by Dora Hermes and the Multimodal Neuroimaging Lab (https://github.com/MultimodalNeuroimagingLab). 
 Please cite the following references when using this plugin: 
