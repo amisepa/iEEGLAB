@@ -1,11 +1,16 @@
 # iEEGLAB
+
 EEGLAB plugin for analyzing intracranial EEG (iEEG) data. Supports both stereoEEG (sEEG) and eCoG data. 
 The plugin supports continuous iEEG data applications:
-	- Epilepsy research, 
-	- clinical monitoring
+
+	- Epilepsy research
+	
+	- Clinical monitoring
 
 Although it is mainly designed for event-related applications:
-	- Stimulus-/Response-locked, 
+
+	- Stimulus-/Response-locked
+	
 	- Cortico-Cortical Evoked Potentials (CCEP; e.g., single pulse stimulation experiments)
 
 A lot of the code and algorithms implemented were adapted from work by Dora Hermes and the Multimodal Neuroimaging Lab (https://github.com/MultimodalNeuroimagingLab). 
@@ -17,9 +22,16 @@ Please cite the following references when using this plugin:
 ## Requirements
 
 - MATLAB
+
 - EEGLAB (installed and path added to MATLAB)
+  
 - Vistasoft (for visualizations; cloned/downloaded and path added to MATLAB): https://github.com/vistalab/vistasoft.git
+  
 - Data importation plugins (depends on the data format; e.g., .mefd, .edf, .vhdr, etc.)
+  
+- Cartesian (XYZ) electrode locations (in .tsv or .csv file)
+  
+- Events either directly in the data or in a .tsv or .csv file (for event-related applications)
 
 
 ### FreeSurfer: only if you need to generate new brain surface files for your subject from MRI data
