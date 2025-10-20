@@ -1,17 +1,18 @@
 # iEEGLAB
 EEGLAB plugin for analyzing intracranial EEG (iEEG) data.
 
-Adapted from work by Dora Hermes. 
-Please cite the following references when using this plugin:
+A lot of the code and algorithms implemented were adapted from work by Dora Hermes and the Multimodal Neuroimaging Lab (https://github.com/MultimodalNeuroimagingLab). 
+Please cite the following references when using this plugin: 
+[to update]
 
 
 
 ## Requirements
 
 - MATLAB
-- EEGLAB
-- Mac Os: Xcode
-
+- EEGLAB (installed and path added to MATLAB)
+- Vistasoft (for visualizations; cloned/downloaded and path added to MATLAB): https://github.com/vistalab/vistasoft.git
+- Data importation plugins (depends on the data format; e.g., .mefd, .edf, .vhdr, etc.)
 
 
 MACOS:
