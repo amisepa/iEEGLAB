@@ -3,20 +3,26 @@
 EEGLAB plugin for analyzing intracranial EEG (iEEG) data. Supports both stereoEEG (sEEG) and eCoG data. 
 The plugin supports continuous iEEG data applications:
 
-	- Epilepsy research
+- Epilepsy research
 	
-	- Clinical monitoring
+- Clinical monitoring
+
 
 Although it is mainly designed for event-related applications:
 
-	- Stimulus-/Response-locked
+- Stimulus-/Response-locked
 	
-	- Cortico-Cortical Evoked Potentials (CCEP; e.g., single pulse stimulation experiments)
+- Cortico-Cortical Evoked Potentials (CCEP; e.g., single pulse stimulation experiments)
 
-A lot of the code and algorithms implemented were adapted from work by Dora Hermes and the Multimodal Neuroimaging Lab (https://github.com/MultimodalNeuroimagingLab). 
+
+A lot of the code and algorithms implemented in this plugin were adapted from work by Dora Hermes and the Multimodal Neuroimaging Lab (https://github.com/MultimodalNeuroimagingLab). 
 Please cite the following references when using this plugin: 
-[to update]
 
+- Valencia, G. O.et al., (2023). Signatures of electrical stimulation driven network interactions in the human limbic system. Journal of Neuroscience, 43(39), 6697-6711. https://pubmed.ncbi.nlm.nih.gov/37620159/
+
+- Huang, H., Valencia, G. O., Gregg, N. M., Osman, G. M., Montoya, M. N., Worrell, G. A., ... & Hermes, D. (2024). CARLA: Adjusted common average referencing for cortico-cortical evoked potential data. Journal of neuroscience methods, 407, 110153. https://pubmed.ncbi.nlm.nih.gov/38710234/
+
+- Miller, K. J., Müller, K. R., Valencia, G. O., Huang, H., Gregg, N. M., Worrell, G. A., & Hermes, D. (2023). Canonical Response Parameterization: Quantifying the structure of responses to single-pulse intracranial electrical brain stimulation. PLoS computational biology, 19(5), e1011105. https://journals.plos.org/ploscompbiol/article?id=10.1371/journal.pcbi.1011105
 
 
 ## Requirements
