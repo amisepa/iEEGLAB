@@ -15,24 +15,6 @@ Please cite the following references when using this plugin:
 - Data importation plugins (depends on the data format; e.g., .mefd, .edf, .vhdr, etc.)
 
 
-### for reading .mefd files, MATLAB needs to compile the necessary MEX files
-for MAC users, you need to:
-1) install xcode
-	Open Mac App Store → Search for Xcode → Install.
-
-2) Switch to full Xcode developer directory:
-		< sudo xcode-select --switch /Applications/Xcode.app/Contents/Developer >
-
-3) Accept the license:
-		< sudo xcodebuild -license >
-		press Enter to display license
-		type: < agree >
-
-4) Verify MATLAB detects the compiler (back in matlab)
-	mex -setup C
-	You should now see an option like: Xcode with Clang
-
-
 ### FreeSurfer: only if you need to generate new brain surface files for your subject from MRI data
 
 1) Install XQuartz: https://www.xquartz.org/
