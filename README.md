@@ -63,19 +63,3 @@ Note: eeglab will add the paths to the plugin and functions automatically when y
 4) once FreeSurfer is installed, you’ll want your terminal to automatically load its environment variables (like FREESURFER_HOME, SUBJECTS_DIR, etc.) every time you open a new Terminal window.
 
 
-%% Quick tutorial
-
-1. Load your dataset
-
-2. Load your 3D Cartesian (XYZ) electrode coordinates & events
-
-Go to EEGLAB > iEEGLAB tab > Load electrodes & events > select each corresponding file
-
-
-
-
-3. 
-
-
-
-
