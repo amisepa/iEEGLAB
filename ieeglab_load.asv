@@ -122,8 +122,9 @@ if isfield(opt, 'event_to_keep') && ~isempty(opt.event_to_keep)
 end
 
 % Keep only electrodes of interest
-if isfield(opt, 'chan_idx') && ~isempty(opt.chan_idx) && length(opt.chan_idx) ~= EEG.nbchan ...
-        || isfield(opt, 'chan_list') && ~isempty(opt.chan_list) && length(opt.chan_list) ~= EEG.nbchan
+if isfield(opt, 'chan_idx') && ~isempty(opt.chan_idx) || ...
+       isfield(opt, 'chan_list') && ~isempty(opt.chan_list) && ...
+       length(opt.chan_list) ~= EEG.nbchan
 
     opt.chan_list = cellstr(opt.chan_list);  % ensure cellstr
     % opt.chan_list = opt.chan_list(:)';       % row cell array

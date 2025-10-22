@@ -28,7 +28,7 @@ plugin_path = fileparts(which('eegplugin_ieeglab.m'));
 addpath(genpath(plugin_path));
 
 % --- define callbacks
-% cb_load = [try_strings.no_check 'EEG = ieeglab_load();' catch_strings.new_and_hist];
+cb_load = [try_strings.no_check 'EEG = ieeglab_load(EEG);' catch_strings.new_and_hist];
 cb_vis_elec = [try_strings.no_check 'ieeglab_vis_elec(EEG);' catch_strings.new_and_hist];
 cb_preprocess = [try_strings.no_check 'EEG = ieeglab_preprocess(EEG);' catch_strings.new_and_hist];
 cb_stats   = [try_strings.no_check '[EEG, LASTCOM] = ieeglab_stats_subject(EEG);'   catch_strings.new_and_hist];
@@ -45,7 +45,7 @@ menu_root = uimenu(fig, ...
     'Position',  7);  % adjust position to place it where you like
 
 % --- add items
-% uimenu(menu_root, 'Label', 'Load data', 'Callback', cb_load);
+uimenu(menu_root, 'Label', 'Load electrode coordinates and events', 'Callback', cb_load);
 uimenu(menu_root, 'Label', 'Visualize electrodes', 'Callback', cb_vis_elec);
 uimenu(menu_root, 'Label', 'Preprocess iEEG data', 'Callback', cb_preprocess);
 uimenu(menu_root, 'Label', 'Within-subject statistics','Callback', cb_stats);

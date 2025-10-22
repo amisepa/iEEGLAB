@@ -11,12 +11,12 @@ function [opt, wasCanceled] = ieeglab_gui_load2(opt)
 %   opt.chan_idx     - previously selected channel indices (preselect)
 %   opt.events       - table; if present enables event-based filters UI
 %   opt.event_field  - (optional) preselect events column name
-%   opt.event_values - (optional) preselect values (cell of char) for that column
+%   opt.event_to_keep - (optional) preselect values (cell of char) for that column
 %
 % Outputs set by GUI:
 %   opt.chan_idx, opt.chan_list
 %   opt.event_field          - char (present only when events exist)
-%   opt.event_values         - {} when "All"/none selected; otherwise list of values (cellstr)
+%   opt.event_to_keep         - {} when "All"/none selected; otherwise list of values (cellstr)
 %   wasCanceled              - logical, true if user canceled
 
 wasCanceled = false;
@@ -69,8 +69,6 @@ haveEvents = isfield(opt,'events') && istable(opt.events) && ~isempty(opt.events
 
 fields_disp = {};
 all_value_lists = {};
-preFieldIdx = 1;
-
 if haveEvents
     vars = opt.events.Properties.VariableNames;
     exclude = {'onset','latency','duration','channel','bvmknum','bvtime','urevent','code','visible'};
@@ -109,10 +107,10 @@ end
 
 list_values = all_value_lists{preFieldIdx};
 
-% Preselect values (from opt.event_values)
+% Preselect values (from opt.event_to_keep)
 preValIdx = 1;
-if haveEvents && isfield(opt,'event_values') && ~isempty(opt.event_values)
-    want = cellstr(opt.event_values(:));
+if haveEvents && isfield(opt,'event_to_keep') && ~isempty(opt.event_to_keep)
+    want = cellstr(opt.event_to_keep(:));
     idxs = [];
     for w = 1:numel(want)
         i = find(strcmp(list_values, want{w}), 1);
@@ -164,14 +162,15 @@ if isempty(res) || isempty(outstruct)
 end
 
 % ---------- Channels mapping ----------
-idxCh_disp = outstruct.sel_list(:)';
-if any(idxCh_disp==1) || isempty(idxCh_disp)
+idxCh = outstruct.sel_list(:);
+if idxCh == 1 % all channels
     opt.chan_idx  = 1:nch;
     opt.chan_list = labels;
 else
-    idx           = idxCh_disp - 1;
-    opt.chan_idx  = idx;
-    opt.chan_list = labels(idx);
+    mask = false(1, nch); % convert to a logical mask
+    mask(idxCh-1) = true; % -1 to ignore 'All Channels' field
+    opt.chan_idx  = mask;
+    opt.chan_list = labels(mask);
 end
 
 % ---------- Event outputs ----------
@@ -186,12 +185,12 @@ if haveEvents
 
     vals_for_field = all_value_lists{ef_idx};
     if isfield(outstruct,'event_val_list') && ~isempty(outstruct.event_val_list)
-        opt.event_values = mapOutEmptyOnAll(outstruct.event_val_list, vals_for_field);
+        opt.event_to_keep = mapOutEmptyOnAll(outstruct.event_val_list, vals_for_field);
     else
-        opt.event_values = {};
+        opt.event_to_keep = {};
     end
 else
-    opt = rmfield_if_exists(opt, {'event_field','event_values'});
+    opt = rmfield_if_exists(opt, {'event_field','event_to_keep'});
 end
 
 end % === main ===

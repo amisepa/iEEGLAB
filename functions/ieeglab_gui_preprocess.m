@@ -6,7 +6,7 @@ function [EEG, wasCanceled] = ieeglab_gui_preprocess(EEG)
 
 wasCanceled = false;
 
-%% ------------------------------------------------------------------------
+% ------------------------------------------------------------------------
 %  Defaults
 % -------------------------------------------------------------------------
 ds_should_enable = EEG.srate > 512;
@@ -16,7 +16,7 @@ choices = struct();
 choices.event_filters     = struct();   % filled by sub-GUI (or empty)
 choices.remove_rare_cond  = true;
 choices.min_trials        = 5;
-choices.remove_no_coords  = true;
+choices.remove_no_coords  = false;
 
 choices.apply_ds          = ds_should_enable;
 
@@ -54,7 +54,7 @@ else
     choices.downsample    = max(1, EEG.srate);
 end
 
-%% ------------------------------------------------------------------------
+% -------------------------------------------------------------------------
 %  Events availability (prefer stored table; fallback to EEG.event)
 % -------------------------------------------------------------------------
 evT = table(); showCols = {};
@@ -87,7 +87,7 @@ if ~haveEv
     choices.apply_baseline = false;
 end
 
-%% ------------------------------------------------------------------------
+% -------------------------------------------------------------------------
 %  Callbacks and on/off states
 % -------------------------------------------------------------------------
 if haveEv && ~isempty(showCols)
@@ -125,7 +125,7 @@ onoff_seg = iff(haveEv && choices.apply_epoch,'on','off');
 onoff_car = iff(haveEv && choices.apply_acar,'on','off');
 onoff_bl  = iff(haveEv && choices.apply_baseline,'on','off');
 
-%% ------------------------------------------------------------------------
+% -------------------------------------------------------------------------
 %  Geometry (rows match UI controls order)
 % -------------------------------------------------------------------------
 uigeom = {
@@ -173,7 +173,7 @@ uigeom = {
     [0.06 0.64 0.30]
 };
 
-%% ------------------------------------------------------------------------
+% -------------------------------------------------------------------------
 %  Build UI
 % -------------------------------------------------------------------------
 uilist = {};  add = @(c) assignin('caller','uilist',[uilist,{c}]); %#ok<NASGU>
@@ -272,7 +272,7 @@ append({'style' 'text' 'string' ''});
 append({'style' 'text' 'tag' 'lbl_bl_mode' 'string' 'Mode:' 'horizontalalignment' 'left' 'enable' onoff_bl});
 append({'style' 'popupmenu' 'tag' 'bl_mode' 'string' {'Subtract (default)' 'Divide'} 'value' choices.baseline_mode 'enable' onoff_bl});
 
-%% ------------------------------------------------------------------------
+% -------------------------------------------------------------------------
 %  Launch
 % -------------------------------------------------------------------------
 [res, ~, ~, out] = inputgui('geometry', uigeom, 'uilist', uilist, ...
@@ -284,7 +284,7 @@ if isempty(res) || isempty(out)
     return
 end
 
-%% ------------------------------------------------------------------------
+% -------------------------------------------------------------------------
 %  Parse outputs (with guards) + finalize consistency with event availability
 % -------------------------------------------------------------------------
 % event filters
@@ -412,9 +412,8 @@ if ~isempty(hStore)&&ishghandle(hStore)
 end
 end
 
-%% ========================================================================
-%  Helpers
-% ========================================================================
+%%  Helpers
+
 function out = iff(cond,a,b), if cond, out=a; else, out=b; end, end
 function s = merge_structs(a,b), s=a; f=fieldnames(b); for i=1:numel(f), s.(f{i})=b.(f{i}); end, end
 function cb = local_cb_toggle(tag_list), cb = @(h,~) local_set_enable(ancestor(h,'figure'), tag_list, get(h,'value')~=0); end

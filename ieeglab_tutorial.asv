@@ -1,107 +1,39 @@
-%% Compile matmef (1st time only)
-% clear; close all; clc
-% 
-% Launch EEGLAB and install the iEEGLAB plugin
-% eeglab > File > extension manage > Type "iEEGLAB" in search bar > Install
-% Or try via command line:         
-% if ~exist('ieeglab','file')
-%     plugin_askinstall('ieeglab', 'ieeglab', 1);
-% end
-% 
-% Navigate to matmef external repo 
-% matmef_path = fileparts(which('readMef3'));
-% cd(matmef_path)
-% 
-% Then in MATLAB, run: 
-% mex read_mef_session_metadata.c matmef_mapping.c mex_utils.c matmef_dataconverter.c
-% mex read_mef_ts_data.c matmef_read.c mex_utils.c matmef_dataconverter.c
-% mex init_mef_struct.c matmef_mapping.c mex_utils.c matmef_dataconverter.c
-% mex write_mef_segment_metadata.c matmef_write.c mex_utils.c matmef_utils.c matmef_mapping.c matmef_dataconverter.c
-% mex write_mef_ts_segment_data.c matmef_write.c mex_utils.c matmef_utils.c matmef_mapping.c matmef_dataconverter.c
-
-% % (FOR MAC USERS, YOU MAY NEED TO DO THIS PRIOR TO THESE STEPS ABOVE FOR SUCCESFUL COMPILING): 
-% % a) install xcode Open Mac App Store → Search for Xcode → Install. 
-% % b) in terminal, switch to full Xcode developer directory: sudo xcode-select --switch /Applications/Xcode.app/Contents/Developer
-% % c) accept the license: sudo xcodebuild -license press (to display license): enter type: agree
-% % d) verify MATLAB detects the compiler (back in matlab): mex -setup C --> You should now see an option like: Xcode with Clang
-
 %% step 1: launch EEGLAB
 
 clear; close all; clc
 eeglab; close
 
-% plugin_path = fileparts(which('eegplugin_ieeglab'));
-plugin_path = '/Users/cedriccannard/Documents/MATLAB/iEEGLAB';
-
-% cd(fullfile(plugin_path, 'tutorial'))
+plugin_path = fileparts(which('eegplugin_ieeglab'));
 cd(plugin_path)
-addpath('functions')
 
 
-%% Arno's Dandi .nwb dataset
+%% Arno's iEEG set but in .vhdr format from Nemar
 
-% https://dandiarchive.org/dandiset/000576/
-
-% disp("Loading .nwb data...")
-% EEG = pop_nwbimport();
-% % data = nwbRead(opt.dataset_path, 'ignorecache');
+% filepath = '/Users/cedriccannard/Documents/ds006519/sub-02/ses-01/ieeg';
+% filename = 'sub-02_ses-01_task-dcs_ieeg.vhdr';
+% EEG = pop_loadbv(filepath,filename);
+% EEG.filepath = filepath;
 % EEG.srate = round(EEG.srate);
+% EEG = eeg_checkset(EEG);
 
-%% Arno's dandi set but in .vhdr format from Nemar
-
-filepath = '/Users/cedriccannard/Downloads/ds006519/sub-02/ses-01/ieeg';
-filename = 'sub-02_ses-01_task-dcs_ieeg.vhdr';
-EEG = pop_loadbv(filepath,filename);
-EEG.filepath = filepath;
-EEG.srate = round(EEG.srate);
-EEG = eeg_checkset(EEG);
-
-%% sEEG .mefd data1 (Dora's reduced dataset)
-
-filepath = '/Users/cedriccannard/Downloads/dataset1';
-filename = 'sub-01_ses-ieeg01_task-ccep_run-01_ieeg.mefd';
-EEG = pop_MEF3(fullfile(filepath, filename));
-EEG.filepath = filepath;
-
-%% sEEG .mefd data2
-
-filepath = '/Users/cedriccannard/Downloads/dataset3';
-filename = 'sub-02_ses-ieeg01_task-ccep_run-01_ieeg.mefd';
+%% Dora's reduced sEEG .mefd dataset (no pial surface)
+% 
+% filepath = '/Users/cedriccannard/Documents/dataset1';
+% filename = 'sub-01_ses-ieeg01_task-ccep_run-01_ieeg.mefd';
 % EEG = pop_MEF3(fullfile(filepath, filename));
+% EEG.filepath = filepath;
+
+%% Cedric's reduced sEEG .set dataset (with pial surface)
+
+filepath = '/Users/cedriccannard/Documents/seeg';
+filename = 'sub-02_ses-ieeg01_task-ccep_run-01_ieeg.set';
+EEG = pop_loadset()
 
 
-% [metadata, signal] = ieeglab_load_mefd(fileName);
-metadata     = readMef3(fullfile(filepath, filename));
-fs           = double(metadata.time_series_metadata.section_2.sampling_frequency);
-num_samples  = double(metadata.time_series_metadata.section_2.number_of_samples);
-startSample  = 369 * fs;
-endSample    = 1000 * fs;
-tic
-% parpool;
-[metadata, signal] = ieeglab_load_mefd(fullfile(filepath, filename), [], [], ...
-    'samples', [startSample endSample]);
-toc
-
-% Convert to EEGLAB format
-EEG = eeg_emptyset;
-EEG.filepath = filepath;
-EEG.data = signal;
-EEG.nbchan = size(EEG.data,1);
-EEG.pnts = size(EEG.data,2);
-EEG.srate = fs;
-EEG = eeg_checkset(EEG);
-
-% Channel labels from metadata
-for iChan = 1:EEG.nbchan
-    EEG.chanlocs(iChan).labels = metadata.time_series_channels(iChan).name;
-end
-EEG = eeg_checkset(EEG);
-
-
-%% eCoG .vhdr data
+%% eCoG .vhdr data (with pial surface)
 % dataset source: https://openneuro.org/datasets/ds005953/versions/1.0.0
 
-filepath = '/Users/cedriccannard/Downloads/ecog/sub-02/ses-01/ieeg/';
+filepath = '/Users/cedriccannard/Documents/ecog/sub-02/ses-01/ieeg/';
 filename = 'sub-02_ses-01_task-visual_run-01_ieeg.vhdr';
 EEG = pop_loadbv(filepath,filename);
 EEG.filepath = filepath;

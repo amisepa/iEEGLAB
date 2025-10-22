@@ -10,120 +10,145 @@ end
 
 opt = EEG.ieeglab.opt;
 
-% --- Gather events safely (table form) ---
-ev_tbl = table();  % default empty
-ev_from_opt = isfield(opt,'events') && istable(opt.events) && ~isempty(opt.events);
+% % --- Preconditions ---
+% if ~isfield(opt,'events') || ~istable(opt.events) || isempty(opt.events) ...
+%         || ~isfield(opt,'event_filters') || isempty(fieldnames(opt.event_filters))
+%     % nothing to do
+%     return;
+% end
 
-if ev_from_opt
-    ev_tbl = opt.events;
-else
-    if isfield(EEG,'event') && ~isempty(EEG.event)
-        if istable(EEG.event)
-            ev_tbl = EEG.event;
-        elseif isstruct(EEG.event)
-            try
-                ev_tbl = struct2table(EEG.event, 'AsArray', true);
-            catch
-                ev_tbl = table();
+if isfield(opt, 'event_filters') && ~isempty(opt.event_filters)
+    ev_tbl0     = opt.events;              % original TSV table (row-aligned to how EEG.event was created)
+    ev_choices  = opt.event_filters;
+    vars        = fieldnames(ev_choices);
+    
+    % check EEG.event and opt.events still match length
+    if size(ev_tbl0,1) ~= length(EEG.event)
+        error("Events from tsv and EEGLAB dataset mismatch! ")
+    end
+    
+    for iVar = 1:length(vars)
+        varName = vars{iVar};
+        if ~isempty(ev_choices.(varName))
+            if strcmpi(varName, 'var_type')
+                trialsToKeep = ismissing({EEG.event.type}, ev_choices.(varName));
+                warning("Per request, removing %g/%g events that are not of type: ", sum(trialsToKeep), length(EEG.event))
+                disp(ev_choices.(varName))
+                EEG.event(~trialsToKeep) = [];
+            else
+                
+                trialsToKeep = ev_choices.(varName);
+                idxToKeep = ev_tbl0.(vars{iVar})
             end
         end
     end
+
+    % toLowerStr  = @(x) lower(string(x));
+    % keepMask    = true(height(ev_tbl0),1); % combined keep mask over TSV rows (start keep-all)
+    
+    % % --- Build combined keep mask over all selected columns ---
+    % for iField = 1:numel(vars)
+    %     col = vars{iField};
+    %     valsToKeep = ev_choices.(col);                 % string/cell or empty
+    %     if isempty(valsToKeep) || ~ismember(col, ev_tbl0.Properties.VariableNames)
+    %         continue;
+    %     end
+    % 
+    %     % Case-insensitive compare
+    %     colVals  = ev_tbl0.(col);
+    %     if iscategorical(colVals), colVals = string(colVals); end
+    %     colVals  = toLowerStr(colVals);
+    %     keepVals = toLowerStr(valsToKeep(:));
+    % 
+    %     thisKeep   = ismember(colVals, keepVals);
+    %     removedNow = sum(~thisKeep & keepMask);        % report new removals due to THIS column
+    %     if removedNow > 0
+    %         keptList = strjoin(cellstr(unique(keepVals,'stable')), ', ');
+    %         fprintf('Removing %d events that are not %s: {%s}\n', removedNow, col, keptList);
+    %     end
+    %     keepMask = keepMask & thisKeep;                % accumulate
+    % end
+    % 
+    % % If nothing to remove, done
+    % if all(keepMask)
+    %     return;
+    % end
+    % 
+    % % --- Apply mask to EEG.event (subset only; never rebuild) ---
+    % n_tsv = height(ev_tbl0);
+    % n_evt = numel(EEG.event);
+    % 
+    % if n_evt == n_tsv
+    %     % 1:1 row mapping (the usual case when EEG.event was just built from TSV)
+    %     EEG.event = EEG.event(keepMask);
+    % 
+    % else
+    %     % Fallback: simple (type,latency) matcher to subset EEG.event
+    %     %           still only SUBSETS EEG.event; does not rebuild it.
+    %     if ~isfield(EEG.event, 'type') || ~isfield(EEG.event, 'latency')
+    %         warning('Cannot safely subset EEG.event: missing .type or .latency. Skipping event pruning.');
+    %         return;
+    %     end
+    % 
+    %     % Reference (kept) keys from TSV
+    %     if ~isfield(opt,'event_field') || ~ismember(opt.event_field, ev_tbl0.Properties.VariableNames)
+    %         warning('opt.event_field missing or not in TSV; skipping event pruning.');
+    %         return;
+    %     end
+    %     kept_tbl = ev_tbl0(keepMask, :);
+    %     ev_types_tbl = kept_tbl.(opt.event_field);
+    %     if iscategorical(ev_types_tbl), ev_types_tbl = string(ev_types_tbl); end
+    %     ev_types_tbl = toLowerStr(ev_types_tbl);
+    %     ev_onset_s   = double(kept_tbl.onset);
+    % 
+    %     % Tolerance: half a sample or 1 ms, whichever is larger
+    %     tol   = max(1e-3, 0.5/double(EEG.srate));
+    %     bucket = @(t) round(t./tol);
+    % 
+    %     % Build multiset (type, bucketed-latency) counts
+    %     tbl_keys = strcat(ev_types_tbl, "__", string(bucket(ev_onset_s)));
+    %     [keys_u, ~, idxu] = unique(tbl_keys);
+    %     counts = accumarray(idxu, 1);
+    %     keep_map = containers.Map(keys_u, num2cell(counts));
+    % 
+    %     % Current EEG.event keys
+    %     curr_types = strings(1, n_evt);
+    %     curr_lat_s = nan(1, n_evt);
+    %     for i = 1:n_evt
+    %         ti = EEG.event(i).type; if iscell(ti), ti = ti{1}; end
+    %         curr_types(i) = toLowerStr(ti);
+    %         curr_lat_s(i) = double(EEG.event(i).latency) / double(EEG.srate);
+    %     end
+    % 
+    %     keep_idx = false(1, n_evt);
+    %     for i = 1:n_evt
+    %         k = curr_types(i) + "__" + string(bucket(curr_lat_s(i)));
+    %         if isKey(keep_map, k) && keep_map(k) > 0
+    %             keep_idx(i) = true;
+    %             keep_map(k) = keep_map(k) - 1;
+    %         end
+    %     end
+    % 
+    %     if ~any(keep_idx)
+    %         warning('Filtering would empty EEG.event (length mismatch fallback). Leaving EEG.event unchanged.');
+    %         return;
+    %     end
+    % 
+    %     EEG.event = EEG.event(keep_idx);
+    % end
+    
+    % % Keep EEGLAB happy
+    % EEG = eeg_checkset(EEG, 'eventconsistency');
+    % EEG = eeg_checkset(EEG);
+    
 end
 
-events_exist = istable(ev_tbl) && ~isempty(ev_tbl);
 
-% --- Filter events of interest (if any) ---
-if isfield(opt,'event_filters') && ~isempty(fieldnames(opt.event_filters)) && events_exist
-    ev_choices = opt.event_filters;
-    vars = fieldnames(ev_choices);
+% %  Drop heavy event table from options (to save memory) 
+% if isfield(EEG,'ieeglab') && isfield(EEG.ieeglab,'opt') && isfield(EEG.ieeglab.opt,'events')
+%     EEG.ieeglab.opt = rmfield(EEG.ieeglab.opt, 'events');
+% end
 
-    % normalize helper
-    toLowerStr = @(x) lower(string(x));
-
-    keepMask = true(height(ev_tbl),1);
-    for iField = 1:numel(vars)
-        col = vars{iField};
-        labelsToKeep = ev_choices.(col);  % cellstr/string; empty -> "All"
-        if isempty(labelsToKeep) || ~ismember(col, ev_tbl.Properties.VariableNames)
-            continue; % nothing to filter on this column
-        end
-
-        % column values -> lower-case string
-        colVals = ev_tbl.(col);
-        if iscategorical(colVals), colVals = string(colVals); end
-        if iscell(colVals) || isstring(colVals) || isnumeric(colVals) || islogical(colVals)
-            colVals = toLowerStr(colVals);
-        else
-            % last resort
-            colVals = toLowerStr(string(colVals));
-        end
-
-        % labels to keep -> lower-case string vector
-        lab = labelsToKeep;
-        if iscell(lab), lab = string(lab); end
-        lab = lower(string(lab(:)));
-
-        thisKeep = ismember(colVals, lab);
-
-        % report removals at this stage (before combine)
-        nToRemoveHere = sum(~thisKeep & keepMask);
-        if nToRemoveHere > 0
-            lab_disp = strjoin(cellstr(unique(lab,'stable')), ', ');
-            fprintf('Filtering by %s: removing %d events NOT in {%s}\n', col, nToRemoveHere, lab_disp);
-        end
-
-        keepMask = keepMask & thisKeep;
-    end
-
-    % Apply final mask to table only
-    nRemoved = sum(~keepMask);
-    if nRemoved > 0
-        ev_tbl = ev_tbl(keepMask, :);
-        fprintf('Total events removed after all filters: %d\n', nRemoved);
-    end
-
-    % --- Safely push filtered events back into EEG.event ---
-    if isfield(EEG,'event') && ~isempty(EEG.event)
-        % lengths may have changed upstream (e.g., eeg_checkset removed OOB events)
-        if istable(EEG.event)
-            nEEG = height(EEG.event);
-        else
-            nEEG = numel(EEG.event);
-        end
-
-        if nEEG ~= height(ev_tbl)
-            warning('Event count changed upstream (%d -> %d). Rebuilding EEG.event from ev_tbl.', nEEG, height(ev_tbl));
-        end
-
-        % Rebuild from ev_tbl (most robust in all cases)
-        try
-            EEG.event = table2struct(ev_tbl);  % row-wise struct array
-        catch
-            EEG.event = ev_tbl;                % fallback: keep as table
-        end
-    else
-        % EEG.event absent/empty: just set from ev_tbl
-        try
-            EEG.event = table2struct(ev_tbl);
-        catch
-            EEG.event = ev_tbl;
-        end
-    end
-end
-
-% --- Drop heavy event table from options (to save memory) ---
-if isfield(EEG,'ieeglab') && isfield(EEG.ieeglab,'opt') && isfield(EEG.ieeglab.opt,'events')
-    EEG.ieeglab.opt = rmfield(EEG.ieeglab.opt, 'events');
-end
-
-% --- If we sourced events from opt.events and EEG.event was empty, push them back ---
-if ev_from_opt && events_exist && (~isfield(EEG,'event') || isempty(EEG.event))
-    try
-        EEG.event = table2struct(ev_tbl);
-    catch
-        EEG.event = ev_tbl;
-    end
-end
 
 % Remove electrodes with no coordinates (optional)
 if isfield(opt, 'remove_no_coords') && opt.remove_no_coords && isfield(EEG,'chanlocs') && ~isempty(EEG.chanlocs)
@@ -131,60 +156,51 @@ if isfield(opt, 'remove_no_coords') && opt.remove_no_coords && isfield(EEG,'chan
         ~isempty(c.X) && ~isempty(c.Y) && ~isempty(c.Z) && ...
         all(isfinite([c.X c.Y c.Z])), EEG.chanlocs);
 
-    removedLabels = {EEG.chanlocs(~hasXYZ).labels};  % for logging
+    removed_elecs = {EEG.chanlocs(~hasXYZ).labels};  % for logging
     if any(~hasXYZ)
-        warning('Removing %d channels with no coordinates: %s\n', ...
-            nnz(~hasXYZ), strjoin(removedLabels, ', '));
+        warning('Removing %d channels with no 3D (XYZ) coordinates: %s\n', ...
+            nnz(~hasXYZ), strjoin(removed_elecs, ', '));
         keepChanIdx = find(hasXYZ);
         EEG = pop_select(EEG, 'channel', keepChanIdx);
         EEG = eeg_checkset(EEG);
     else
-        removedLabels = {};
+        removed_elecs = {};
     end
 
     % Remove corresponding events whose TYPE includes any removed label (if events exist)
-    if ~isempty(removedLabels) && isfield(EEG,'event') && ~isempty(EEG.event)
-        % [evTypes, okTypes] = local_get_event_types(EEG.event);
-        evTypes = {EEG.event.type};
-        % if okTypes
-            remEv = false(size(evTypes));
-            lowRemoved = lower(string(removedLabels));
-            for k = 1:numel(lowRemoved)
-                remEv = remEv | contains(evTypes, lowRemoved(k));
-            end
-            if any(remEv)
-                warning("Removing %g events containing removed-electrode labels.", sum(remEv))
-                if istable(EEG.event)
-                    EEG.event = EEG.event(~remEv, :);
-                else
-                    EEG.event = EEG.event(~remEv);
-                end
-                EEG = eeg_checkset(EEG);
-            end
-        % end
-    end
+    trials_to_rem = contains({EEG.event.type}, removed_elecs);
+    warning("Keeping %g/%g events containing electrodes that had no 3D coordinates.", sum(trials_to_rem), length({EEG.event.type}))
+    EEG.event(trials_to_rem) = [];
+    opt.events(trials_to_rem,:) = [];
+    EEG = eeg_checkset(EEG, 'eventconsistency');
+    EEG = eeg_checkset(EEG);
+
 end
 
-% Remove events pointing to electrodes not present (for CCEP data)
-if isfield(EEG,'event') && ~isempty(EEG.event) && isfield(EEG,'chanlocs') ...
-        && ~isempty(EEG.chanlocs) && ~isnumeric(EEG.event(1).type)
-    % [evTypes, okTypes] = local_get_event_types(EEG.event);
-    evTypes = {EEG.event.type};
-    if contains(evTypes, '-')
-        present = lower(string({EEG.chanlocs.labels}));
-        idx = ~arrayfun(@(t) any(contains(t, present)), evTypes);
-        if any(idx)
-            warning("Removing %g events containing an electrode not in EEG.chanlocs:", sum(idx))
-            disp(unique(cellstr(evTypes(idx))))
-            if istable(EEG.event)
-                EEG.event(idx, :) = [];
-            else
-                EEG.event(idx) = [];
-            end
-        end
-    end
-end
+% % Remove events pointing to electrodes not present (for CCEP data)
+% if isfield(EEG,'event') && ~isempty(EEG.event) && isfield(EEG,'chanlocs') ...
+%         && ~isempty(EEG.chanlocs) && ~isnumeric(EEG.event(1).type)
+%     % [evTypes, okTypes] = local_get_event_types(EEG.event);
+%     evTypes = {EEG.event.type};
+%     if contains(evTypes, '-')
+%         present = lower(string({EEG.chanlocs.labels}));
+%         idx = ~arrayfun(@(t) any(contains(t, present)), evTypes);
+%         if any(idx)
+%             warning("Removing %g events containing an electrode not in EEG.chanlocs:", sum(idx))
+%             disp(unique(cellstr(evTypes(idx))))
+%             if istable(EEG.event)
+%                 EEG.event(idx, :) = [];
+%             else
+%                 EEG.event(idx) = [];
+%             end
+%         end
+%     end
+% end
 
+% Sanity check that we still have some events left
+if isempty(EEG.event)
+    error("No events left after event filtering!")
+end
 
 % Downsample
 if isfield(opt, 'downsample') && ~isempty(opt.downsample) && opt.downsample<EEG.srate
@@ -258,7 +274,7 @@ end
 
 % Epoching (uses ALL current event types if none chosen in GUI)
 if isfield(opt,'apply_epoch') && opt.apply_epoch && ...
-        isfield(opt,'epoch_window') && numel(opt.epoch_window)>=2 && ...
+        isfield(opt,'epoch_window') && ...
         isfield(EEG,'event') && ~isempty(EEG.event)
 
     % window

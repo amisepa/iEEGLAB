@@ -51,8 +51,9 @@ if ~isempty(surf_files)
         disp("No electrodes in right hemisphere to plot")
     end
 
-    axis equal off vis3d tight
-    title("Visualization using subject's pial surface file (Freesurfer-generated)",'Interpreter','none');
+    axis equal off 
+    % vis3d tight
+    title("Visualization (using subject's pial surface file from Freesurfer)",'Interpreter','none');
 
 
 else
@@ -79,7 +80,8 @@ else
     s.SizeData = 10; s.MarkerFaceColor = [.9 .5 .5]; s.MarkerEdgeColor = [0 0 0];
 
     try icadefs; set(gcf, 'color', BACKCOLOR); catch; end  % eeglab color
-    axis equal off vis3d tight
+    axis equal off 
+    % vis3d tight
     camlight headlight; camlight right
     lighting gouraud; material dull
     view([-135 20]);
