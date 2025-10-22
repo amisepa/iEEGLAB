@@ -27,17 +27,25 @@ Please cite the following references when using this plugin:
 
 ## Requirements
 
-- MATLAB
+- MATLAB installed with license
 
-- EEGLAB (installed and path added to MATLAB)
+- EEGLAB Toolbox installed and path added to MATLAB: https://github.com/sccn/eeglab?tab=readme-ov-file#installingcloning
+
+- iEEGLAB plugin
+
+	option 1: download + unzip (or clone if you use git version control; ideal to pull up to date fixes and improvements before new releases are made) this iEEGLAB repository into your local eeglab > plugins folder
+
+	option 2 (via EEGLAB user interface): open EEGLAB > File > Manage extensions > type "iEEGLAB" in the search bar > Install
+
+Note: eeglab will add the paths to the plugin and functions automatically when you launch EEGLAB. Otherwise, you can also clone/place the iEEGLAB folder somewhere else on your computer and manually add the path to the folder in MATLAB (if preferred). 
+
+- Vistasoft for visualizations: clone/download repository (https://github.com/vistalab/vistasoft.git) and add the path in MATLAB manually (see above)
   
-- Vistasoft (for visualizations; cloned/downloaded and path added to MATLAB): https://github.com/vistalab/vistasoft.git
+- Data importation plugins (depends on the data format; e.g., .mefd, .edf, .vhdr, etc.; See tutorial for more details). 
   
-- Data importation plugins (depends on the data format; e.g., .mefd, .edf, .vhdr, etc.)
+- Have 3D cartesian (XYZ) electrode locations for each file you wish to analyze (in .tsv/.csv file)
   
-- Cartesian (XYZ) electrode locations (in .tsv or .csv file)
-  
-- Events either directly in the data or in a .tsv or .csv file (for event-related applications)
+- Have events either directly in the data or in a .tsv/.csv file (for event-related applications)
 
 
 ### FreeSurfer: only if you need to generate new brain surface files for your subject from MRI data
@@ -53,4 +61,5 @@ Please cite the following references when using this plugin:
 	2.4) Control-click the .pkg file again and choose Open → then click Open in the new dialog. It will now install normally.
 
 4) once FreeSurfer is installed, you’ll want your terminal to automatically load its environment variables (like FREESURFER_HOME, SUBJECTS_DIR, etc.) every time you open a new Terminal window.
+
 
