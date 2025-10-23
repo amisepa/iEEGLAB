@@ -16,7 +16,7 @@ choices = struct();
 choices.event_filters     = struct();   % filled by sub-GUI (or empty)
 choices.remove_rare_cond  = true;
 choices.min_trials        = 5;
-choices.remove_no_coords  = false;
+choices.remove_no_coords  = true;
 
 choices.apply_ds          = ds_should_enable;
 
@@ -27,7 +27,7 @@ choices.apply_notch       = true;
 choices.notch             = 60;         % Hz (scalar or vector, e.g., [60 120])
 
 choices.apply_lowpass     = false;
-choices.lowpass           = [];         % Hz (empty -> none)
+choices.lowpass           = 40;         % Hz (empty -> none)
 
 % Global filter type for ALL filters
 choices.filter_type       = 1;          % 1 = Noncausal zero-phase (default), 2 = Minimum-phase

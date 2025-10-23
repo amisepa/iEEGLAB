@@ -6,39 +6,17 @@ eeglab; close
 plugin_path = fileparts(which('eegplugin_ieeglab'));
 cd(plugin_path)
 
+%% Reduced sEEG .set dataset (with pial surface)
 
-%% Arno's iEEG set but in .vhdr format from Nemar
-
-% filepath = '/Users/cedriccannard/Documents/ds006519/sub-02/ses-01/ieeg';
-% filename = 'sub-02_ses-01_task-dcs_ieeg.vhdr';
-% EEG = pop_loadbv(filepath,filename);
-% EEG.filepath = filepath;
-% EEG.srate = round(EEG.srate);
-% EEG = eeg_checkset(EEG);
-
-%% Dora's reduced sEEG .mefd dataset (no pial surface)
-% 
-% filepath = '/Users/cedriccannard/Documents/dataset1';
-% filename = 'sub-01_ses-ieeg01_task-ccep_run-01_ieeg.mefd';
-% EEG = pop_MEF3(fullfile(filepath, filename));
-% EEG.filepath = filepath;
-
-%% Cedric's reduced sEEG .set dataset (with pial surface)
-
-filepath = '/Users/cedriccannard/Documents/seeg';
+filepath = fullfile(plugin_path, 'tutorial', 'seeg');
 filename = 'sub-02_ses-ieeg01_task-ccep_run-01_ieeg.set';
 EEG = pop_loadset('filename', filename, 'filepath', filepath);
 
+%% Reduced eCoG .set dataset (with pial surface)
 
-%% eCoG .vhdr data (with pial surface)
-% dataset source: https://openneuro.org/datasets/ds005953/versions/1.0.0
-
-filepath = '/Users/cedriccannard/Documents/ecog/sub-02/ses-01/ieeg/';
-filename = 'sub-02_ses-01_task-visual_run-01_ieeg.vhdr';
-EEG = pop_loadbv(filepath,filename);
-EEG.filepath = filepath;
-EEG.srate = round(EEG.srate);
-EEG = eeg_checkset(EEG);
+filepath = fullfile(plugin_path, 'tutorial', 'ecog');
+filename = 'sub-02_ses-01_task-visual_run-01_ieeg.set';
+EEG = pop_loadset('filename', filename, 'filepath', filepath);
 
 
 %% Load electrode coordinates and events of interest from .tsv files
@@ -54,7 +32,7 @@ pop_eegplot(EEG,1,1,1);
 
 % Electrodes in 3D glass brain 
 addpath(genpath('/Users/cedriccannard/Documents/MATLAB/vistasoft'))
-% addpath('/Users/cedriccannard/Documents/MATLAB/fieldtrip')
+
 ieeglab_vis_elec(EEG);
 
 
@@ -62,11 +40,13 @@ ieeglab_vis_elec(EEG);
 
 EEG = ieeglab_preprocess(EEG); 
 
-% Epoched data
+
+%% Some EEGLAB plots
+
+% Plot Epoched time series
 pop_eegplot(EEG,1,1,1);
 
-%% Some plots
-
+% ERP image
 for iChan = 1:25:EEG.nbchan
     figure
     pop_erpimage(EEG,1, iChan,[],EEG.chanlocs(iChan).labels,10,1,{},[],'' ,'yerplabel','\muV','erp','on','cbar','on');
@@ -86,19 +66,27 @@ figure; plottopo( trimmean(EEG.data,20,3), 'frames', EEG.pnts, 'limits', [-500 9
 % figure; plottopo( EEG.data, 'frames', EEG.pnts, 'limits', [-500 990 0 0], 'chans', 1:EEG.nbchan, 'ydir', 1);
 
 % PSD
-% [pwr, pwr_osc, psd, psd_osc, f] = compute_pwr(EEG.data, EEG.srate,'PlotPSD', true, 'UseParallel', true);
-figure; pop_spectopo(EEG, 1, [], 'EEG' , 'freq', [], 'freqrange',[0.1 50],'electrodes','off');
+figure; pop_spectopo(EEG, 1, [], 'EEG' , 'freq', [], 'freqrange',[0.5 50],'electrodes','off');
 
 % Heatmap of the average across trials (all channels x time)
 avg_pair = squeeze(trimmean(EEG.data, 10, 3));             % [chan x time]
 plot_ccep(avg_pair, EEG.times, {EEG.event.type}, 'all', [], 0.20);
 
-% single-channel overlay of all trials + mean
-channel = 10;   
-trials = contains({EEG.event.type}, EEG.chanlocs(channel).labels);
+% single-channel overlay of all trials + mean (CCEP experiment)
+channel = 2;   
+% trials = contains({EEG.event.type}, EEG.chanlocs(channel).labels);  % for CCEP trials
 sum(trials)
 plot_ccep(EEG.data(:,:,trials), EEG.times, {EEG.chanlocs.labels}, 'single', channel, []);
 
+% single-channel overlay of all trials + mean (traditional experiment
+% comparing two stimuli)
+channel = 2;   
+idx1 = strcmp({EEG.event.type}, {EEG.event(1).type});  % for non-CCEP data (this corresponds to stimulus type)
+idx2 = strcmp({EEG.event.type}, {EEG.event(2).type});  % for non-CCEP data (this corresponds to stimulus type)
+plot_ccep(EEG.data(:,:,idx1), EEG.times, {EEG.chanlocs.labels}, 'single', channel, []);
+% plot_ccep(EEG.data(:,:,idx2), EEG.times, {EEG.chanlocs.labels}, 'single', channel, []);
+
+% figure; pop_newtimef( EEG, 1, 1, [-203  789], [3         0.8] , 'topovec', 1, 'elocs', EEG.chanlocs, 'chaninfo', EEG.chaninfo, 'caption', 'RA1', 'baseline',[0], 'alpha',0.001, 'mcorrect', 'fdr', 'padratio', 1, 'winsize', 26);
 
 %%
 

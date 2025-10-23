@@ -12,7 +12,7 @@ metadata     = readMef3(fullfile(filepath, filename));
 fs           = double(metadata.time_series_metadata.section_2.sampling_frequency);
 num_samples  = double(metadata.time_series_metadata.section_2.number_of_samples);
 startSample  = 369 * fs;     % import starting at 1st event
-endSample    = 1569 * fs;    % 20 min of data
+endSample    = 1509 * fs;    % 19 min of data
 
 p = gcp('nocreate');
 if isempty(p), parpool; end
@@ -61,4 +61,20 @@ EEG = pop_select(EEG, 'channel', elecs);
 % save EEGLAB dataset
 pop_saveset(EEG, 'filename', sprintf('%s.set', extractBefore(filename, '.')),'filepath','/Users/cedriccannard/Documents/seeg/');
 
+
+%% eCoG .vhdr data (with pial surface)
+% dataset source: https://openneuro.org/datasets/ds005953/versions/1.0.0
+
+filepath = '/Users/cedriccannard/Documents/ecog/sub-02/ses-01/ieeg/';
+filename = 'sub-02_ses-01_task-visual_run-01_ieeg.vhdr';
+EEG = pop_loadbv(filepath,filename);
+EEG.filepath = filepath;
+EEG.srate = round(EEG.srate);
+EEG = eeg_checkset(EEG);
+
+% Downsample
+EEG = pop_resample(EEG, 128);
+
+% save EEGLAB dataset
+pop_saveset(EEG, 'filename', sprintf('%s.set', extractBefore(filename, '.')),'filepath',filepath);
 

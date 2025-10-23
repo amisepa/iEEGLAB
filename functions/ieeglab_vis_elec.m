@@ -10,7 +10,7 @@ figure('color','w'); hold on
 try icadefs; set(gcf, 'color', BACKCOLOR); catch, end  % eeglab color
 
 sub_files  = { dir(fullfile(EEG.filepath)).name }';
-surf_files = sub_files(contains(sub_files, 'pial'));
+surf_files = sub_files(contains(sub_files, 'pial')); % 'pial' or 'white' work
 
 % Subject pial-surface plotting from vistasoft
 if ~isempty(surf_files)        
