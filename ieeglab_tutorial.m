@@ -15,7 +15,7 @@ EEG = pop_loadset('filename', filename, 'filepath', filepath);
 
 %% Reduced eCoG .set dataset (with pial surface)
 
-filepath = fullfile(plugin_path, 'tutorial', 'ecog');
+filepath = fullfile(plugin_path, 'tutorial', 'dataset_ecog');
 filename = 'sub-02_ses-01_task-visual_run-01_ieeg.set';
 EEG = pop_loadset('filename', filename, 'filepath', filepath);
 
